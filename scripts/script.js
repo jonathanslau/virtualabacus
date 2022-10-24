@@ -15,21 +15,33 @@ var is_dragging = false; // keep track of mousedown event when in shape
 var startX = 0; // keep track of mouse starting position
 var startY = 0; // keep track of mouse starting position
 
+var testX = (window.innerWidth - 30)/2;
+
 // bead 1
-ctxs.push({x: 30, y: 30, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 30, width: 50, height: 50, colour: '#D34324'});
 // bead 2
-ctxs.push({x: 130, y: 130, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 130, width: 50, height: 50, colour: '#D34324'});
+// bead 3
+ctxs.push({x: testX, y: 230, width: 50, height: 50, colour: '#D34324'});
+// bead 4
+ctxs.push({x: testX, y: 330, width: 50, height: 50, colour: '#D34324'});
+// bead 5
+ctxs.push({x: testX, y: 430, width: 50, height: 50, colour: '#D34324'});
+
 
 var draw_shapes = function() {
     var context = bg.getContext("2d");
     context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
     for (var [i, ctx] of ctxs.entries()) {
-        context.save();
-        // context.translate(ctx.x + ctx.width/2, ctx.y + ctx.height/2);
-        // context.rotate(45 * (Math.PI/180));
+        context.save(); // save context
+        // console.log(ctx.x, ctx.y)
+        // translate origin to current shape's x, y
+        context.translate(ctx.x + ctx.width/2, ctx.y + ctx.height/2);
+        context.rotate(45 * (Math.PI/180));
         context.fillStyle = ctx.colour;
-        context.fillRect(ctx.x, ctx.y, ctx.width, ctx.height);
-        context.restore();
+        // x and y positions are reset to 0, 0 because of the translate() function
+        context.fillRect(-ctx.width/2, -ctx.height/2, ctx.width, ctx.height);
+        context.restore(); // restore context so other objects are not rotated
     }
 }
 
@@ -142,9 +154,7 @@ var mouse_move = function(e) {
 }
 
 // initialize shapes on load
-for (var [i, ctx] of ctxs.entries()) {
-    draw_shapes();
-}
+draw_shapes();
 
 // mouse event listeners
 bg.onmousedown = mouse_down;
