@@ -8,7 +8,7 @@ var is_dragging = false;
 var startX = 0;
 var startY = 0;
 
-ctxs.push({x: 30, y: 30, width: 50, height: 50, colour: 'red'});
+ctxs.push({x: 30, y: 30, width: 50, height: 50, colour: '#D34324'});
 
 var draw_shapes = function() {
     var context = bg.getContext("2d");
