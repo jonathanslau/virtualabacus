@@ -1,0 +1,8 @@
+body {
+    /* disable scroll */
+    height: 100%;
+    overflow-y: hidden;
+    /* after x time, touch events count as page scrolling, disable this */
+    touch-action: none;
+ }
+ 
