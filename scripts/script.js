@@ -66,9 +66,9 @@ let is_shape_colliding = function(dy) {
             } else {
                 // not the last bead
                 below_ctx = ctxs[current_ctx_index + 1];
-                extended_y = below_ctx.width/4;
-                current_col_pt = ctxs[current_ctx_index].y + ctxs[current_ctx_index].height + extended_y;
-                below_col_pt = below_ctx.y - extended_y;
+                extended_y = Math.sqrt((below_ctx.width/2)**2 + (below_ctx.height/2)**2);
+                current_col_pt = ctxs[current_ctx_index].y + ctxs[current_ctx_index].height/2 + extended_y;
+                below_col_pt = below_ctx.y + below_ctx.height/2 - extended_y;
                 console.log('current', current_col_pt);
                 console.log('below', below_col_pt);
                 if (current_col_pt >=  below_col_pt) {
@@ -87,9 +87,9 @@ let is_shape_colliding = function(dy) {
                 return false;
             } else {
                 above_ctx = ctxs[current_ctx_index - 1];
-                extended_y = above_ctx.width/4;
-                current_col_pt = ctxs[current_ctx_index].y - extended_y;
-                above_col_pt = above_ctx.y + above_ctx.height + extended_y;
+                extended_y = Math.sqrt((above_ctx.width/2)**2 + (above_ctx.height/2)**2);
+                current_col_pt = ctxs[current_ctx_index].y + ctxs[current_ctx_index].height/2 - extended_y;
+                above_col_pt = above_ctx.y + above_ctx.height/2 + extended_y;
                 console.log('current', current_col_pt);
                 console.log('above', above_col_pt);
                 if (current_col_pt <=  above_col_pt) {
