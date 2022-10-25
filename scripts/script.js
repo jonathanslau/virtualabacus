@@ -224,11 +224,13 @@ let mouse_move = function(e) {
                         ctxs[current_ctx_index + 1].y += dy;
                         // check if others below also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
+                            // console.log('bead', i, i > (current_ctx_index + 1) && is_shape_colliding(i - 1, dy));
                             if (i > (current_ctx_index + 1) && is_shape_colliding(i - 1, dy)) {
                                 ctxs[i].y += dy;
                             }
                         }
                     }
+                    break;
                 case -1:
                     // is this the first bead?
                     if (current_ctx_index === 0) {
@@ -243,6 +245,7 @@ let mouse_move = function(e) {
                             }
                         }
                     }
+                    break;
                 default:
                     break;
             }                      
