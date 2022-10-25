@@ -132,7 +132,7 @@ let mouse_down = function(e) {
     start_x = parseInt(e.clientX || e.targetTouches[0].clientX);
     start_y = parseInt(e.clientY || e.targetTouches[0].clientY);
 
-    console.log('starting', start_x, start_y);
+    console.log(e, 'starting', start_x, start_y);
 
     // test for touch screen
     // if (e.pointerType === 'touch') {
@@ -176,11 +176,11 @@ let mouse_out = function(e) {
 
 // function to handle moving shapes
 let mouse_move = function(e) {
-    console.log(e);
     if (!is_dragging) {
         return
     } else if (is_dragging) {
 
+        // console.log(e);
         let mouse_x
         let mouse_y
 
@@ -188,14 +188,14 @@ let mouse_move = function(e) {
         // track current x,y position
         if (e.pointerType === 'touch') {
             // console.log(e);
-            mouse_x = parseInt(e.pageX || e.changedTouches[0].clientX);
-            mouse_y = parseInt(e.pageY || e.changedTouches[0].clientY);
+            mouse_x = parseInt(e.pageX || e.changedTouches[0].pageX);
+            mouse_y = parseInt(e.pageY || e.changedTtouches[0].pageY);
         } else {
-            mouse_x = parseInt(e.clientX);
-            mouse_y = parseInt(e.clientY);    
+            mouse_x = parseInt(e.clientX || e.changedTouches[0].pageX);
+            mouse_y = parseInt(e.clientY || e.changedTouches[0].pageY);    
         }
 
-        console.log('moved to', mouse_x, mouse_y);
+        console.log(e, 'moved to', mouse_x, mouse_y);
         e.preventDefault();
         
         // calculate movement
