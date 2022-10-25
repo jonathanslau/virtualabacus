@@ -1,38 +1,39 @@
 // set up element
-var bg = document.getElementById("bg");
+const bg = document.getElementById("bg");
 
 // define relative size of canvas
 bg.width = window.innerWidth - 30;
 bg.height = window.innerHeight - 30;
 
 // set up variables
-var ctxs = []; // array to hold beads
-var current_ctx_index = null; // integer to keep track of current bead
-var last_ctx_pos = []; /* keep track of bead position before moving, although this should be unnecessary
-following how I have set up draw_shapes() */ 
-var current_ctx_pos = []; // placeholder for position translation  
-var is_dragging = false; // keep track of mousedown event when in shape
-var startX = 0; // keep track of mouse starting position
-var startY = 0; // keep track of mouse starting position
+let ctxs = []; // array to hold beads
+let current_ctx_index = null; // integer to keep track of current bead
+let current_ctx_pos = []; // placeholder for position translation  
+let is_dragging = false; // keep track of mousedown event when in shape
+let startX = 0; // keep track of mouse starting position
+let startY = 0; // keep track of mouse starting position
 
-var testX = (window.innerWidth - 30)/2;
+// set up relative positions of beads and other parameters
+let testX = (window.innerWidth - 30)/2;
+let init_bead_colour = '#D34324';
+let active_bead_colour;
 
 // bead 1
-ctxs.push({x: testX, y: 30, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 30, width: 50, height: 50, colour: init_bead_colour});
 // bead 2
-ctxs.push({x: testX, y: 130, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 130, width: 50, height: 50, colour: init_bead_colour});
 // bead 3
-ctxs.push({x: testX, y: 230, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 230, width: 50, height: 50, colour: init_bead_colour});
 // bead 4
-ctxs.push({x: testX, y: 330, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 330, width: 50, height: 50, colour: init_bead_colour});
 // bead 5
-ctxs.push({x: testX, y: 430, width: 50, height: 50, colour: '#D34324'});
+ctxs.push({x: testX, y: 430, width: 50, height: 50, colour: init_bead_colour});
 
 
-var draw_shapes = function() {
-    var context = bg.getContext("2d");
+let draw_shapes = function() {
+    let context = bg.getContext("2d");
     context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
-    for (var [i, ctx] of ctxs.entries()) {
+    for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // console.log(ctx.x, ctx.y)
         // translate origin to current shape's x, y
@@ -45,12 +46,12 @@ var draw_shapes = function() {
     }
 }
 
-var is_mouse_in_shape = function(x, y, ctx) {
+let is_mouse_in_shape = function(x, y, ctx) {
     // define boundaries of current shape
-    var ctx_left = ctx.x;
-    var ctx_right = ctx.x + ctx.width;
-    var ctx_top = ctx.y;
-    var ctx_bottom = ctx.y + ctx.height;
+    let ctx_left = ctx.x;
+    let ctx_right = ctx.x + ctx.width;
+    let ctx_top = ctx.y;
+    let ctx_bottom = ctx.y + ctx.height;
 
     // check if mouse event originated inside current shape
     if (x > ctx_left && x < ctx_right && y > ctx_top && y < ctx_bottom) {
@@ -61,7 +62,7 @@ var is_mouse_in_shape = function(x, y, ctx) {
 }
 
 // function for handling when click or touch starts
-var mouse_down = function(e) {
+let mouse_down = function(e) {
     e.preventDefault();
     // console.log(e);
     // grab starting x, y positions
@@ -78,7 +79,7 @@ var mouse_down = function(e) {
     // console.log(e.pointerType);
 
     // if starting position was in a shape, then set is_dragging to true
-    for (var [i, ctx] of ctxs.entries()) {
+    for (let [i, ctx] of ctxs.entries()) {
         if (is_mouse_in_shape(startX, startY, ctx)) {
             // console.log('in shape', i);
             current_ctx_index = i;
@@ -90,7 +91,7 @@ var mouse_down = function(e) {
 }
 
 // function for handling mouse up, ending is_dragging
-var mouse_up = function(e) {
+let mouse_up = function(e) {
     if (!is_dragging) {
         return;
     }
@@ -100,7 +101,7 @@ var mouse_up = function(e) {
 }
 
 // function to handle mouse out of bounds
-var mouse_out = function(e) {
+let mouse_out = function(e) {
     if (!is_dragging) {
         return;
     }
@@ -109,33 +110,34 @@ var mouse_out = function(e) {
 }
 
 // function to handle moving shapes
-var mouse_move = function(e) {
+let mouse_move = function(e) {
     // console.log('moving');
     if (!is_dragging) {
         return
     } else if (is_dragging) {
+
+        let mouseX
+        let mouseY
+
         // console.log('moving and dragging')
         // track current x,y position
         if (e.pointerType == 'touch') {
             // console.log(e);
-            var mouseX = parseInt(e.pageX);
-            var mouseY = parseInt(e.pageY);
+            mouseX = parseInt(e.pageX);
+            mouseY = parseInt(e.pageY);
         } else {
-            var mouseX = parseInt(e.clientX);
-            var mouseY = parseInt(e.clientY);    
+            mouseX = parseInt(e.clientX);
+            mouseY = parseInt(e.clientY);    
         }
 
         e.preventDefault();
         
         // calculate movement
-        var dx = mouseX - startX;
-        var dy = mouseY - startY;
+        let dx = mouseX - startX;
+        let dy = mouseY - startY;
 
         // console.log(dx, dy);
         
-        // log position of old shape for cleanup
-        last_ctx_pos = ctxs[current_ctx_index];
-
         // get ready to move shape
         current_ctx_pos = ctxs[current_ctx_index];
         current_ctx_pos.x += dx;
