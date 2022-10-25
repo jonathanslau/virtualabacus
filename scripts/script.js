@@ -129,8 +129,10 @@ let mouse_down = function(e) {
     e.preventDefault();
     // console.log(e);
     // grab starting x, y positions
-    start_x = parseInt(e.clientX);
-    start_y = parseInt(e.clientY);
+    start_x = parseInt(e.clientX || e.targetTouches[0].clientX);
+    start_y = parseInt(e.clientY || e.targetTouches[0].clientY);
+
+    console.log('starting', start_x, start_y);
 
     // test for touch screen
     // if (e.pointerType === 'touch') {
@@ -174,7 +176,7 @@ let mouse_out = function(e) {
 
 // function to handle moving shapes
 let mouse_move = function(e) {
-    // console.log('moving');
+    console.log(e);
     if (!is_dragging) {
         return
     } else if (is_dragging) {
@@ -182,17 +184,18 @@ let mouse_move = function(e) {
         let mouse_x
         let mouse_y
 
-        // console.log('moving and dragging')
+        // console.log(e.pointerType);
         // track current x,y position
         if (e.pointerType === 'touch') {
             // console.log(e);
-            mouse_x = parseInt(e.pageX);
-            mouse_y = parseInt(e.pageY);
+            mouse_x = parseInt(e.pageX || e.changedTouches[0].clientX);
+            mouse_y = parseInt(e.pageY || e.changedTouches[0].clientY);
         } else {
             mouse_x = parseInt(e.clientX);
             mouse_y = parseInt(e.clientY);    
         }
 
+        console.log('moved to', mouse_x, mouse_y);
         e.preventDefault();
         
         // calculate movement
@@ -261,22 +264,31 @@ let mouse_move = function(e) {
     }
 }
 
-// initialize shapes on load
-draw_shapes();
+function set_event_handlers() {
+    // mouse event listeners
+    bg.onmousedown = mouse_down;
+    bg.onmouseup = mouse_up;
+    bg.onmouseout = mouse_out;
+    bg.onmousemove = mouse_move;
 
-// mouse event listeners
-bg.onmousedown = mouse_down;
-bg.onmouseup = mouse_up;
-bg.onmouseout = mouse_out;
-bg.onmousemove = mouse_move;
+    // pointer/track pad event listeners
+    bg.onpointerdown = mouse_down;
+    bg.onpointerup = mouse_up;
+    bg.onpointerout = mouse_out;
+    bg.onpointermove = mouse_move;
 
-// pointer/track pad event listeners
-bg.onpointerdown = mouse_down;
-bg.onpointerup = mouse_up;
-bg.onpointerout = mouse_out;
-bg.onpointermove = mouse_move;
+    // touch device event listeners
+    bg.ontouchstart = mouse_down;
+    bg.ontouchcancel = mouse_up;
+    bg.ontouchend = mouse_up;
+    bg.ontouchmove = mouse_move;  
+}
 
-// touch device event listeners
-bg.ontouchstart = mouse_down;
-bg.ontouchend = mouse_up;
-bg.ontouchmove = mouse_move;  
+function init() {
+    set_event_handlers();
+    // initialize shapes on load
+    draw_shapes();
+}
+
+init();
+
