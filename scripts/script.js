@@ -46,7 +46,7 @@ let draw_shapes = function() {
 }
 
 // test for collision between beads
-let is_shape_colliding = function(dy) {
+let is_shape_colliding = function(i, dy) {
     // set up limited scope variables
     let above_ctx;
     let below_ctx;
@@ -54,50 +54,49 @@ let is_shape_colliding = function(dy) {
     let current_col_pt;
     let above_col_pt;
     let below_col_pt;
-
-    console.log(dy);
+    // console.log(dy);
 
     switch(Math.sign(dy)) {
         // going down
         case 1:
             // is this the last bead?
-            if (current_ctx_index === (ctxs.length - 1)) {
+            if (i === (ctxs.length - 1)) {
                 return false;
             } else {
                 // not the last bead
-                below_ctx = ctxs[current_ctx_index + 1];
+                below_ctx = ctxs[i + 1];
                 extended_y = Math.sqrt((below_ctx.width/2)**2 + (below_ctx.height/2)**2);
-                current_col_pt = ctxs[current_ctx_index].y + ctxs[current_ctx_index].height/2 + extended_y;
+                current_col_pt = ctxs[i].y + ctxs[i].height/2 + extended_y;
                 below_col_pt = below_ctx.y + below_ctx.height/2 - extended_y;
-                console.log('current', current_col_pt);
-                console.log('below', below_col_pt);
+                // console.log('current', current_col_pt);
+                // console.log('below', below_col_pt);
                 if (current_col_pt >=  below_col_pt) {
-                    ctxs[current_ctx_index].is_colliding = true;    
-                    console.log(true);
+                    ctxs[i].is_colliding = true;    
+                    // console.log(true);
                     return true;
                 } else {
-                    ctxs[current_ctx_index].is_colliding = false;
+                    ctxs[i].is_colliding = false;
                     return false;
                 }
             }
         // going up
         case -1:
             // is this the first bead?
-            if (current_ctx_index === 0) {
+            if (i === 0) {
                 return false;
             } else {
-                above_ctx = ctxs[current_ctx_index - 1];
+                above_ctx = ctxs[i - 1];
                 extended_y = Math.sqrt((above_ctx.width/2)**2 + (above_ctx.height/2)**2);
-                current_col_pt = ctxs[current_ctx_index].y + ctxs[current_ctx_index].height/2 - extended_y;
+                current_col_pt = ctxs[i].y + ctxs[i].height/2 - extended_y;
                 above_col_pt = above_ctx.y + above_ctx.height/2 + extended_y;
-                console.log('current', current_col_pt);
-                console.log('above', above_col_pt);
+                // console.log('current', current_col_pt);
+                // console.log('above', above_col_pt);
                 if (current_col_pt <=  above_col_pt) {
-                    ctxs[current_ctx_index].is_colliding = true;    
-                    console.log(true);
+                    ctxs[i].is_colliding = true;    
+                    // console.log(true);
                     return true;
                 } else {
-                    ctxs[current_ctx_index].is_colliding = false;
+                    ctxs[i].is_colliding = false;
                     return false;
                 }
             }
@@ -204,12 +203,51 @@ let mouse_move = function(e) {
         // ctxs[current_ctx_index].x += dx; // y movement only
         ctxs[current_ctx_index].y += dy;
 
-        if (is_shape_colliding(dy)) {
-            // if it is colliding, we will reverse the y change
-            // we are reversing it because we still need to draw it in the last position
-            // prior to collision
-            ctxs[current_ctx_index].y -= dy;
+        // old collision treatment
+        // if (is_shape_colliding(dy)) {
+        //     // if it is colliding, we will reverse the y change
+        //     // we are reversing it because we still need to draw it in the last position
+        //     // prior to collision
+        //     ctxs[current_ctx_index].y -= dy;
+        // }
+
+        // move everything if colliding
+        if (is_shape_colliding(current_ctx_index, dy)) {
+            switch (Math.sign(dy)) {
+                // going down
+                case 1:
+                    // is this the last bead?
+                    if (current_ctx_index === (ctxs.length - 1)) {
+                        // do nothing
+                    } else {
+                        // move the one directly below
+                        ctxs[current_ctx_index + 1].y += dy;
+                        // check if others below also need to be moved
+                        for (let [i, ctx] of ctxs.entries()) {
+                            if (i > (current_ctx_index + 1) && is_shape_colliding(i - 1, dy)) {
+                                ctxs[i].y += dy;
+                            }
+                        }
+                    }
+                case -1:
+                    // is this the first bead?
+                    if (current_ctx_index === 0) {
+                        // do nothing
+                    } else {
+                        // move the one directly above
+                        ctxs[current_ctx_index - 1].y += dy;
+                        // check if others above also need to be moved
+                        for (let [i, ctx] of ctxs.entries()) {
+                            if (i < (current_ctx_index - 1) && (is_shape_colliding(i + 1, dy))) {                                
+                                ctxs[i].y += dy;
+                            }
+                        }
+                    }
+                default:
+                    break;
+            }                      
         }
+
 
         // redraw shape for valid movement, if any
         draw_shapes();
