@@ -201,7 +201,7 @@ let mouse_move = function(e) {
         // calculate movement
         // let dx = mouseX - startX; // y movement only
         let dy = mouse_y - start_y;
-        console.log(dy, mouse_y, e)
+        console.log('start', start_y, 'change', dy, 'mouse_y', mouse_y, e)
         
         // write change to array, as this will be used to test collision
         // ctxs[current_ctx_index].x += dx; // y movement only
@@ -272,17 +272,22 @@ function set_event_handlers() {
     bg.onmouseout = mouse_out;
     bg.onmousemove = mouse_move;
 
-    // pointer/track pad event listeners
-    bg.onpointerdown = mouse_down;
-    bg.onpointerup = mouse_up;
-    bg.onpointerout = mouse_out;
-    bg.onpointermove = mouse_move;
-
-    // touch device event listeners
-    bg.ontouchstart = mouse_down;
-    bg.ontouchcancel = mouse_up;
-    bg.ontouchend = mouse_up;
-    bg.ontouchmove = mouse_move;  
+    // basic solution for input device type
+    // pointer and touch events interfering with each other
+    // only have one or the other active
+    if (window.innerWidth > window.innerHeight) {
+        // pointer/track pad event listeners
+        bg.onpointerdown = mouse_down;
+        bg.onpointerup = mouse_up;
+        bg.onpointerout = mouse_out;
+        bg.onpointermove = mouse_move;
+    } else {
+        // touch device event listeners
+        bg.ontouchstart = mouse_down;
+        bg.ontouchcancel = mouse_up;
+        bg.ontouchend = mouse_up;
+        bg.ontouchmove = mouse_move;  
+    }
 }
 
 function init() {
