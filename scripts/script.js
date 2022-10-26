@@ -2,15 +2,18 @@
 const bg = document.getElementById("bg");
 
 // define relative size of canvas
-bg.width = window.innerWidth - 30;
-bg.height = window.innerHeight - 30;
+bg.width = window.innerWidth - 20;
+bg.height = window.innerHeight - 20;
 
 // set up variables
 let ctxs = []; // array to hold beads
-let current_ctx_index = null; // integer to keep track of current bead
+let current_ctx_arr = []; // array to keep track of current bead being touched
 let is_dragging = false; // keep track of mousedown event when in shape
-let start_x = 0; // keep track of mouse starting position
-let start_y = 0; // keep track of mouse starting position
+let start_x = []; // keep track of mouse starting position
+let start_y = []; // keep track of mouse starting position
+let mouse_x = [];
+let mouse_y = [];
+let is_mobile = false;
 
 // set up relative positions of beads and other parameters
 let test_x = (window.innerWidth - 30)/2;
@@ -20,13 +23,18 @@ let active_bead_colour;
 // bead 1
 ctxs.push({x: test_x, y: 30, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 2
-ctxs.push({x: test_x, y: 130, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 125, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 3
-ctxs.push({x: test_x, y: 230, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 200, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 4
-ctxs.push({x: test_x, y: 330, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 285, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 5
-ctxs.push({x: test_x, y: 430, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 370, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+
+// touch 1
+current_ctx_arr.push({touch: 0, last_ctx: null});
+// touch 2
+current_ctx_arr.push({touch: 1, last_ctx: null});
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
@@ -129,27 +137,43 @@ let mouse_down = function(e) {
     e.preventDefault();
     // console.log(e);
     // grab starting x, y positions
-    start_x = parseInt(e.clientX);
-    start_y = parseInt(e.clientY);
+    function mouse_down_work(t) {
+        start_x[t] = parseInt(e.clientX || e.targetTouches[t].clientX);
+        start_y[t] = parseInt(e.clientY || e.targetTouches[t].clientY);
 
-    // test for touch screen
-    // if (e.pointerType === 'touch') {
-    //     console.log('was touch');
-    // } else {
-    //     console.log('was not touch');
-    // }
-    
-    // console.log(e.pointerType);
+        // if (t === 1) {
+        //     console.log(e, 'starting', 'touch', t, start_x[t], start_y[t]);
+        // }
+        // test for touch screen
+        // if (e.pointerType === 'touch') {
+        //     console.log('was touch');
+        // } else {
+        //     console.log('was not touch');
+        // }
+        
+        // console.log(e.pointerType);
 
-    // if starting position was in a shape, then set is_dragging to true
-    for (let [i, ctx] of ctxs.entries()) {
-        if (is_mouse_in_shape(start_x, start_y, ctx)) {
-            // console.log('in shape', i);
-            current_ctx_index = i;
-            is_dragging = true;
-        } else {
-            // console.log('not in shape');
+        // if starting position was in a shape, then set is_dragging to true
+        for (let [i, ctx] of ctxs.entries()) {
+            if (is_mouse_in_shape(start_x[t], start_y[t], ctx)) {
+                // console.log('touch', t, 'in shape', i);
+                current_ctx_arr[t].last_ctx = i;
+                is_dragging = true;
+            } else {
+                // console.log('not in shape');
+            }
         }
+        // console.log('arr', current_ctx_arr);
+    }
+
+    if (is_mobile) {
+        for (let t = 0; t < e.targetTouches.length; t++) {
+            if (t < 2) {
+                mouse_down_work(t);
+            }
+        }
+    } else {
+        mouse_down_work(0);
     }
 }
 
@@ -160,7 +184,9 @@ let mouse_up = function(e) {
     }
     e.preventDefault();
     // console.log('mouse up')
-    is_dragging = false
+    is_dragging = false;
+    current_ctx_arr[0].last_ctx = null;
+    current_ctx_arr[1].last_ctx = null;
 }
 
 // function to handle mouse out of bounds
@@ -169,39 +195,45 @@ let mouse_out = function(e) {
         return;
     }
     e.preventDefault();
-    is_dragging = false
+    is_dragging = false;
+    current_ctx_arr[0].last_ctx = null;
+    current_ctx_arr[1].last_ctx = null;
 }
 
 // function to handle moving shapes
 let mouse_move = function(e) {
-    // console.log('moving');
-    if (!is_dragging) {
-        return
-    } else if (is_dragging) {
 
-        let mouse_x
-        let mouse_y
+    e.preventDefault();
 
-        // console.log('moving and dragging')
+    function mouse_move_work(t){
+        // console.log(e);
+
+        // console.log(e.pointerType);
         // track current x,y position
         if (e.pointerType === 'touch') {
             // console.log(e);
-            mouse_x = parseInt(e.pageX);
-            mouse_y = parseInt(e.pageY);
+            mouse_x[t] = parseInt(e.pageX);
+            mouse_y[t] = parseInt(e.pageY);
         } else {
-            mouse_x = parseInt(e.clientX);
-            mouse_y = parseInt(e.clientY);    
+            // console.log('working');
+            mouse_x[t] = parseInt(e.clientX || e.targetTouches[t].pageX);
+            mouse_y[t] = parseInt(e.clientY || e.targetTouches[t].pageY);    
         }
-
-        e.preventDefault();
         
         // calculate movement
         // let dx = mouseX - startX; // y movement only
-        let dy = mouse_y - start_y;
+        let dy = mouse_y[t] - start_y[t];
+        // console.log('start', start_y[t], 'change', dy, 'mouse_y', mouse_y[t], 'touch', t, e)
+        // if (t === 1) {
+            // console.log(e, 'moved to', 'touch', t, 'shape', current_ctx_index, mouse_x[t], mouse_y[t], dy);
+            // console.log(dy)
+        // }
         
         // write change to array, as this will be used to test collision
         // ctxs[current_ctx_index].x += dx; // y movement only
-        ctxs[current_ctx_index].y += dy;
+        // console.log('arr', current_ctx_arr);
+        // console.log('touch', t, 'shape', current_ctx_arr[t].last_ctx, dy);
+        ctxs[current_ctx_arr[t].last_ctx].y += dy;
 
         // old collision treatment
         // if (is_shape_colliding(dy)) {
@@ -212,20 +244,20 @@ let mouse_move = function(e) {
         // }
 
         // move everything if colliding
-        if (is_shape_colliding(current_ctx_index, dy)) {
+        if (is_shape_colliding(current_ctx_arr[t].last_ctx, dy)) {
             switch (Math.sign(dy)) {
                 // going down
                 case 1:
                     // is this the last bead?
-                    if (current_ctx_index === (ctxs.length - 1)) {
+                    if (current_ctx_arr[t].last_ctx === (ctxs.length - 1)) {
                         // do nothing
                     } else {
                         // move the one directly below
-                        ctxs[current_ctx_index + 1].y += dy;
+                        ctxs[current_ctx_arr[t].last_ctx + 1].y += dy;
                         // check if others below also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
                             // console.log('bead', i, i > (current_ctx_index + 1) && is_shape_colliding(i - 1, dy));
-                            if (i > (current_ctx_index + 1) && is_shape_colliding(i - 1, dy)) {
+                            if (i > (current_ctx_arr[t].last_ctx + 1) && is_shape_colliding(i - 1, dy)) {
                                 ctxs[i].y += dy;
                             }
                         }
@@ -233,14 +265,14 @@ let mouse_move = function(e) {
                     break;
                 case -1:
                     // is this the first bead?
-                    if (current_ctx_index === 0) {
+                    if (current_ctx_arr[t].last_ctx === 0) {
                         // do nothing
                     } else {
                         // move the one directly above
-                        ctxs[current_ctx_index - 1].y += dy;
+                        ctxs[current_ctx_arr[t].last_ctx - 1].y += dy;
                         // check if others above also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
-                            if (i < (current_ctx_index - 1) && (is_shape_colliding(i + 1, dy))) {                                
+                            if (i < (current_ctx_arr[t].last_ctx - 1) && (is_shape_colliding(i + 1, dy))) {                                
                                 ctxs[i].y += dy;
                             }
                         }
@@ -251,32 +283,72 @@ let mouse_move = function(e) {
             }                      
         }
 
-
         // redraw shape for valid movement, if any
         draw_shapes();
 
         // reset starting position
         // start_x = mouse_x;
-        start_y = mouse_y;
+        start_y[t] = mouse_y[t];
+    }
+
+    if (!is_dragging) {
+        return
+    } else if (is_dragging && is_mobile) {
+        for (let t = 0; t < e.targetTouches.length; t++) {
+            if (t < 2) {
+                // console.log('touch', t, e)
+                try {         
+                    mouse_move_work(t);
+                } catch {
+                    // nothing
+                }
+            }
+        }
+    } else if (is_dragging && !is_mobile) {
+        mouse_move_work(0)
     }
 }
 
-// initialize shapes on load
-draw_shapes();
+// function handle_multi_touch(et, e) {
+//     // handle up to the first two touches
+//     for (let t = 0; t < 2; t++) {
+//         touch_index = t;
+//         window[et](e);
+//     }
+// }
 
-// mouse event listeners
-bg.onmousedown = mouse_down;
-bg.onmouseup = mouse_up;
-bg.onmouseout = mouse_out;
-bg.onmousemove = mouse_move;
+function set_event_handlers() {
+    // mouse event listeners
+    bg.onmousedown = mouse_down;
+    bg.onmouseup = mouse_up;
+    bg.onmouseout = mouse_out;
+    bg.onmousemove = mouse_move;
 
-// pointer/track pad event listeners
-bg.onpointerdown = mouse_down;
-bg.onpointerup = mouse_up;
-bg.onpointerout = mouse_out;
-bg.onpointermove = mouse_move;
+    // basic solution for input device type
+    // pointer and touch events interfering with each other
+    // only have one or the other active
+    // would fail if mobile device rotated sideways
+    if (window.innerWidth > window.innerHeight) {
+        // pointer/track pad event listeners
+        bg.onpointerdown = mouse_down;
+        bg.onpointerup = mouse_up;
+        bg.onpointerout = mouse_out;
+        bg.onpointermove = mouse_move;
+    } else {
+        is_mobile = true;
+        // touch device event listeners
+        bg.ontouchstart = mouse_down;
+        bg.ontouchcancel = mouse_up;
+        bg.ontouchend = mouse_up;
+        bg.ontouchmove = mouse_move;  
+    }
+}
 
-// touch device event listeners
-bg.ontouchstart = mouse_down;
-bg.ontouchend = mouse_up;
-bg.ontouchmove = mouse_move;  
+function init() {
+    set_event_handlers();
+    // initialize shapes on load
+    draw_shapes();
+}
+
+init();
+
