@@ -2,8 +2,8 @@
 const bg = document.getElementById("bg");
 
 // define relative size of canvas
-bg.width = window.innerWidth - 30;
-bg.height = window.innerHeight - 30;
+bg.width = window.innerWidth - 20;
+bg.height = window.innerHeight - 20;
 
 // set up variables
 let ctxs = []; // array to hold beads
@@ -20,13 +20,13 @@ let active_bead_colour;
 // bead 1
 ctxs.push({x: test_x, y: 30, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 2
-ctxs.push({x: test_x, y: 130, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 125, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 3
-ctxs.push({x: test_x, y: 230, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 200, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 4
-ctxs.push({x: test_x, y: 330, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 285, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 // bead 5
-ctxs.push({x: test_x, y: 430, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+ctxs.push({x: test_x, y: 370, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
@@ -132,7 +132,7 @@ let mouse_down = function(e) {
     start_x = parseInt(e.clientX || e.targetTouches[0].clientX);
     start_y = parseInt(e.clientY || e.targetTouches[0].clientY);
 
-    console.log(e, 'starting', start_x, start_y);
+    // console.log(e, 'starting', start_x, start_y);
 
     // test for touch screen
     // if (e.pointerType === 'touch') {
@@ -188,19 +188,20 @@ let mouse_move = function(e) {
         // track current x,y position
         if (e.pointerType === 'touch') {
             // console.log(e);
-            mouse_x = parseInt(e.pageX || e.changedTouches[0].pageX);
-            mouse_y = parseInt(e.pageY || e.changedTtouches[0].pageY);
+            mouse_x = parseInt(e.pageX);
+            mouse_y = parseInt(e.pageY);
         } else {
-            mouse_x = parseInt(e.clientX || e.changedTouches[0].pageX);
-            mouse_y = parseInt(e.clientY || e.changedTouches[0].pageY);    
+            mouse_x = parseInt(e.clientX || e.targetTouches[0].pageX);
+            mouse_y = parseInt(e.clientY || e.targetTouches[0].pageY);    
         }
 
-        console.log(e, 'moved to', mouse_x, mouse_y);
+        // console.log(e, 'moved to', mouse_x, mouse_y);
         e.preventDefault();
         
         // calculate movement
         // let dx = mouseX - startX; // y movement only
         let dy = mouse_y - start_y;
+        console.log(dy, mouse_y, e)
         
         // write change to array, as this will be used to test collision
         // ctxs[current_ctx_index].x += dx; // y movement only
