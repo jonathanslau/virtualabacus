@@ -6,7 +6,7 @@ bg.width = window.innerWidth - 20;
 bg.height = window.innerHeight - 20;
 
 // set up variables
-let ctxs = []; // array to hold beads
+let ctxs = []; // array to hold bead objects
 let current_ctx_arr = []; // array to keep track of current bead being touched
 let is_dragging = false; // keep track of mousedown event when in shape
 let start_x = []; // keep track of mouse starting position
@@ -15,26 +15,44 @@ let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; //
 
+// set up touch tracking
+current_ctx_arr.push({touch: 0, last_ctx: null}, {touch: 1, last_ctx: null});
+
 // set up relative positions of beads and other parameters
-let test_x = (window.innerWidth - 30)/2;
+// 4 columns, fold page evenly by 5 and centerpoint x should be on folds
+let fold_x = Math.round(bg.width/4);
+let rel_w = Math.round(bg.height/14);
+let rel_x = fold_x - rel_w
+let incr_x = Math.round(bg.width/5);
+
+// start y on bottom half of the page
+let rel_y = Math.round(bg.height/2);
+let rel_h = rel_w;
+let incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)); // start beads stacked
 let init_bead_colour = '#D34324';
 // let active_bead_colour;
 
-// bead 1
-ctxs.push({x: test_x, y: 30, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 2
-ctxs.push({x: test_x, y: 125, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 3
-ctxs.push({x: test_x, y: 200, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 4
-ctxs.push({x: test_x, y: 285, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 5
-ctxs.push({x: test_x, y: 370, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+// // bead 1
+// ctxs.push({x: test_x, y: 30, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+// // bead 2
+// ctxs.push({x: test_x, y: 125, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+// // bead 3
+// ctxs.push({x: test_x, y: 200, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+// // bead 4
+// ctxs.push({x: test_x, y: 285, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
+// // bead 5
+// ctxs.push({x: test_x, y: 370, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
 
-// touch 1
-current_ctx_arr.push({touch: 0, last_ctx: null});
-// touch 2
-current_ctx_arr.push({touch: 1, last_ctx: null});
+// c, b, x, y, w, h, is_colliding
+function define_shape_dims() {
+    // column loop
+    for (let c = 0; c < 4; c++) {
+        // bead loop
+        for (let b = 0; b < 5; b++) {
+            ctxs.push({col: c, idx: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, is_colliding: true});
+        }
+    }
+}
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
@@ -43,11 +61,11 @@ let draw_shapes = function() {
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
-        context.translate(ctx.x + ctx.width/2, ctx.y + ctx.height/2);
+        context.translate(ctx.x + ctx.w/2, ctx.y + ctx.h/2);
         context.rotate(45 * (Math.PI/180));
-        context.fillStyle = ctx.colour;
+        context.fillStyle = init_bead_colour;
         // x and y positions are reset to 0, 0 because of the translate() function
-        context.fillRect(-ctx.width/2, -ctx.height/2, ctx.width, ctx.height);    
+        context.fillRect(-ctx.w/2, -ctx.h/2, ctx.w, ctx.h);    
         context.restore(); // restore context so other objects are not rotated
     }
 }
@@ -315,5 +333,8 @@ function init() {
     draw_shapes();
 }
 
-init();
+// init();
 
+define_shape_dims();
+console.log(ctxs);
+draw_shapes();
