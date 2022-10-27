@@ -6,7 +6,7 @@ bg.width = window.innerWidth - 20;
 bg.height = window.innerHeight - 20;
 
 // set up variables
-let ctxs = []; // array to hold beads
+let ctxs = []; // array to hold bead objects
 let current_ctx_arr = []; // array to keep track of current bead being touched
 let is_dragging = false; // keep track of mousedown event when in shape
 let start_x = []; // keep track of mouse starting position
@@ -14,42 +14,113 @@ let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; //
+let active_col_index;
+const last_bead_index = 4; // immutable b value for last bead in column
+
+// set up touch tracking
+current_ctx_arr.push({touch: 0, last_ctx: null}, {touch: 1, last_ctx: null});
 
 // set up relative positions of beads and other parameters
-let test_x = (window.innerWidth - 30)/2;
+// 4 columns, fold page evenly by 5 and centerpoint x should be on folds
+let fold_x = Math.round(bg.width/4);
+let rel_w = Math.round(bg.height/14);
+let rel_x = fold_x - rel_w
+let incr_x = Math.round(bg.width/5);
+
+// start y on bottom half of the page
+let rel_y = Math.round(bg.height/2);
+let rel_h = rel_w;
+// start beads stacked
+// rel_y is centerpoint, where the rectangles will be drawn
+// rotated 45 degrees, therefore the perfect fitment will be centerpoint to
+// edge of rectangle * 2, using pythagorean thereom
+let incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)) + 1; 
 let init_bead_colour = '#D34324';
 // let active_bead_colour;
 
-// bead 1
-ctxs.push({x: test_x, y: 30, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 2
-ctxs.push({x: test_x, y: 125, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 3
-ctxs.push({x: test_x, y: 200, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 4
-ctxs.push({x: test_x, y: 285, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-// bead 5
-ctxs.push({x: test_x, y: 370, width: 50, height: 50, colour: init_bead_colour, is_colliding: false});
-
-// touch 1
-current_ctx_arr.push({touch: 0, last_ctx: null});
-// touch 2
-current_ctx_arr.push({touch: 1, last_ctx: null});
+// c, b, x, y, w, h, is_colliding, val
+function define_shape_dims() {
+    // init array
+    // column loop
+    for (let c = 0; c < 4; c++) {
+        // bead loop
+        for (let b = 0; b < 5; b++) {
+            let temp_val;
+            if (b === 0) {
+                temp_val = 5 * 10**(3 - c);
+            } else {
+                temp_val = 1 * 10**(3 - c);
+            }
+            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, is_colliding: false, val: temp_val});
+        }
+    }
+    // move first row starting position up
+    for (let [i, ctx] of ctxs.entries()) {
+        if (ctx.b === 0) {
+            ctxs[i].y = ctx.y - 1.5 * incr_y;
+        }
+    }
+    // console.log(ctxs)
+}
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
     let context = bg.getContext("2d");
+
+    // beads
     context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
-        context.translate(ctx.x + ctx.width/2, ctx.y + ctx.height/2);
+        context.translate(ctx.x + ctx.w/2, ctx.y + ctx.h/2);
         context.rotate(45 * (Math.PI/180));
-        context.fillStyle = ctx.colour;
+        context.fillStyle = init_bead_colour;
         // x and y positions are reset to 0, 0 because of the translate() function
-        context.fillRect(-ctx.width/2, -ctx.height/2, ctx.width, ctx.height);    
+        context.fillRect(-ctx.w/2, -ctx.h/2, ctx.w, ctx.h);    
         context.restore(); // restore context so other objects are not rotated
     }
+
+    // boundaries
+    // middle
+    context.strokeStyle = 'black';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(0, rel_y + incr_y/6);
+    context.lineTo(bg.width, rel_y + incr_y/6);
+    context.stroke();
+    // top
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(0, rel_y - 1.5 * incr_y - 10);
+    context.lineTo(bg.width, rel_y - 1.5 * incr_y - 10);
+    context.stroke();
+
+    // counter
+    context.fillStyle = 'grey';
+    context.fillRect(bg.width/2 - bg.width/6, bg.height/12, bg.width/3, bg.height/6);
+    context.fillStyle = 'black';
+    context.fillText('test', bg.width/2, bg.height/8, bg.width/6);
+}
+
+// let update_counter = function () {
+//     let context = bg.getContext("2d");
+
+// }
+
+// test for if mouse click originated in shape
+let is_mouse_in_shape = function(x, y, ctx) {
+    // define boundaries of current shape
+    let ctx_left = ctx.x + ctx.w/2 - incr_y/2;
+    let ctx_right = ctx.x + ctx.w/2 + incr_y/2;
+    let ctx_top = ctx.y + ctx.h/2 - incr_y/2;
+    let ctx_bottom = ctx.y + ctx.h/2 + incr_y/2;
+
+    // check if mouse event originated inside current shape
+    if (x > ctx_left && x < ctx_right && y > ctx_top && y < ctx_bottom) {
+        return true;
+    }
+
+    return false;
 }
 
 // test for collision between beads
@@ -66,14 +137,15 @@ let is_shape_colliding = function(i, dy) {
         // going down
         case 1:
             // is this the last bead?
-            if (i === (ctxs.length - 1)) {
+            // last bead is b = 4
+            if (ctxs[i].b === last_bead_index) {
                 return false;
             } else {
                 // not the last bead
                 below_ctx = ctxs[i + 1];
-                extended_y = Math.sqrt((below_ctx.width/2)**2 + (below_ctx.height/2)**2);
-                current_col_pt = ctxs[i].y + ctxs[i].height/2 + extended_y;
-                below_col_pt = below_ctx.y + below_ctx.height/2 - extended_y;
+                extended_y = Math.sqrt((below_ctx.w/2)**2 + (below_ctx.h/2)**2);
+                current_col_pt = ctxs[i].y + ctxs[i].h/2 + extended_y;
+                below_col_pt = below_ctx.y + below_ctx.h/2 - extended_y;
                 if (current_col_pt >=  below_col_pt) {
                     ctxs[i].is_colliding = true;    
                     return true;
@@ -85,13 +157,13 @@ let is_shape_colliding = function(i, dy) {
         // going up
         case -1:
             // is this the first bead?
-            if (i === 0) {
+            if (ctxs[i].b === 0) {
                 return false;
             } else {
                 above_ctx = ctxs[i - 1];
-                extended_y = Math.sqrt((above_ctx.width/2)**2 + (above_ctx.height/2)**2);
-                current_col_pt = ctxs[i].y + ctxs[i].height/2 - extended_y;
-                above_col_pt = above_ctx.y + above_ctx.height/2 + extended_y;
+                extended_y = Math.sqrt((above_ctx.w/2)**2 + (above_ctx.h/2)**2);
+                current_col_pt = ctxs[i].y + ctxs[i].h/2 - extended_y;
+                above_col_pt = above_ctx.y + above_ctx.h/2 + extended_y;
                 if (current_col_pt <=  above_col_pt) {
                     ctxs[i].is_colliding = true;    
                     return true;
@@ -108,22 +180,6 @@ let is_shape_colliding = function(i, dy) {
     }
 }
 
-// test for if mouse click originated in shape
-let is_mouse_in_shape = function(x, y, ctx) {
-    // define boundaries of current shape
-    let ctx_left = ctx.x;
-    let ctx_right = ctx.x + ctx.width;
-    let ctx_top = ctx.y;
-    let ctx_bottom = ctx.y + ctx.height;
-
-    // check if mouse event originated inside current shape
-    if (x > ctx_left && x < ctx_right && y > ctx_top && y < ctx_bottom) {
-        return true;
-    }
-
-    return false;
-}
-
 // function for handling when click or touch starts
 let mouse_down = function(e) {
     e.preventDefault();
@@ -136,8 +192,9 @@ let mouse_down = function(e) {
         // if starting position was in a shape, then set is_dragging to true
         for (let [i, ctx] of ctxs.entries()) {
             if (is_mouse_in_shape(start_x[t], start_y[t], ctx)) {
-                // console.log('touch', t, 'in shape', i);
+                // console.log('touch', t, 'in shape', i, 'col', ctx.c);
                 current_ctx_arr[t].last_ctx = i;
+                active_col_index = ctx.c;
                 is_dragging = true;
             } else {
                 // console.log('not in shape');
@@ -167,6 +224,7 @@ let mouse_up = function(e) {
     is_dragging = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
+    active_col_index = null;
 }
 
 // function to handle mouse out of bounds
@@ -178,6 +236,7 @@ let mouse_out = function(e) {
     is_dragging = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
+    active_col_index = null;
 }
 
 // function to handle moving shapes
@@ -215,20 +274,20 @@ let mouse_move = function(e) {
         //     ctxs[current_ctx_index].y -= dy;
         // }
 
-        // move everything if colliding
+        // move everything in the column if colliding
         if (is_shape_colliding(current_ctx_arr[t].last_ctx, dy)) {
             switch (Math.sign(dy)) {
                 // going down
                 case 1:
                     // is this the last bead?
-                    if (current_ctx_arr[t].last_ctx === (ctxs.length - 1)) {
+                    if (ctxs[current_ctx_arr[t].last_ctx].b === last_bead_index) {
                         // do nothing
                     } else {
                         // move the one directly below
                         ctxs[current_ctx_arr[t].last_ctx + 1].y += dy;
                         // check if others below also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
-                            if (i > (current_ctx_arr[t].last_ctx + 1) && is_shape_colliding(i - 1, dy)) {
+                            if (ctx.c === active_col_index && i > (current_ctx_arr[t].last_ctx + 1) && is_shape_colliding(i - 1, dy)) {
                                 ctxs[i].y += dy;
                             }
                         }
@@ -236,14 +295,15 @@ let mouse_move = function(e) {
                     break;
                 case -1:
                     // is this the first bead?
-                    if (current_ctx_arr[t].last_ctx === 0) {
+                    if (ctxs[current_ctx_arr[t].last_ctx].b === 0) {
                         // do nothing
+                        console.log('test')
                     } else {
                         // move the one directly above
                         ctxs[current_ctx_arr[t].last_ctx - 1].y += dy;
                         // check if others above also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
-                            if (i < (current_ctx_arr[t].last_ctx - 1) && (is_shape_colliding(i + 1, dy))) {                                
+                            if (ctx.c === active_col_index && i < (current_ctx_arr[t].last_ctx - 1) && (is_shape_colliding(i + 1, dy))) {                                
                                 ctxs[i].y += dy;
                             }
                         }
@@ -310,10 +370,11 @@ function set_event_handlers() {
 }
 
 function init() {
-    set_event_handlers();
     // initialize shapes on load
+    define_shape_dims();
     draw_shapes();
+    set_event_handlers();
+
 }
 
 init();
-
