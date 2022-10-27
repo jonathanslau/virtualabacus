@@ -34,12 +34,13 @@ let rel_h = rel_w;
 // rel_y is centerpoint, where the rectangles will be drawn
 // rotated 45 degrees, therefore the perfect fitment will be centerpoint to
 // edge of rectangle * 2, using pythagorean thereom
-let incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)); 
+let incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)) + 1; 
 let init_bead_colour = '#D34324';
 // let active_bead_colour;
 
 // c, b, x, y, w, h, is_colliding, val
 function define_shape_dims() {
+    // init array
     // column loop
     for (let c = 0; c < 4; c++) {
         // bead loop
@@ -50,7 +51,13 @@ function define_shape_dims() {
             } else {
                 temp_val = 1 * 10**(3 - c);
             }
-            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, is_colliding: true, val: temp_val});
+            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, is_colliding: false, val: temp_val});
+        }
+    }
+    // move first row starting position up
+    for (let [i, ctx] of ctxs.entries()) {
+        if (ctx.b === 0) {
+            ctxs[i].y = ctx.y - 1.5 * incr_y;
         }
     }
     // console.log(ctxs)
@@ -59,6 +66,8 @@ function define_shape_dims() {
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
     let context = bg.getContext("2d");
+
+    // beads
     context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
@@ -70,7 +79,33 @@ let draw_shapes = function() {
         context.fillRect(-ctx.w/2, -ctx.h/2, ctx.w, ctx.h);    
         context.restore(); // restore context so other objects are not rotated
     }
+
+    // boundaries
+    // middle
+    context.strokeStyle = 'black';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(0, rel_y + incr_y/6);
+    context.lineTo(bg.width, rel_y + incr_y/6);
+    context.stroke();
+    // top
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(0, rel_y - 1.5 * incr_y - 10);
+    context.lineTo(bg.width, rel_y - 1.5 * incr_y - 10);
+    context.stroke();
+
+    // counter
+    context.fillStyle = 'grey';
+    context.fillRect(bg.width/2 - bg.width/6, bg.height/12, bg.width/3, bg.height/6);
+    context.fillStyle = 'black';
+    context.fillText('test', bg.width/2, bg.height/8, bg.width/6);
 }
+
+// let update_counter = function () {
+//     let context = bg.getContext("2d");
+
+// }
 
 // test for if mouse click originated in shape
 let is_mouse_in_shape = function(x, y, ctx) {
