@@ -1,8 +1,8 @@
 {
   "name": "virtualabacus",
   "version": "1.0.0",
-  "description": "test",
-  "main": "app.js",
+  "description": "Repository for my virtual abacus project.",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,6 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/jonathanslau/virtualabacus.git"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
