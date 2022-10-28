@@ -13,8 +13,9 @@ let start_x = []; // keep track of mouse starting position
 let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
-let is_mobile = false; //
-let active_col_index;
+let is_mobile = false; // flag for desktop/mboile
+let active_col_index; // track column being touched
+let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
 
 // set up touch tracking
@@ -92,7 +93,7 @@ function define_shape_dims() {
             } else {
                 temp_val = 1 * 10**(3 - c);
             }
-            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, max_y: def_bound_y('u', b), min_y: def_bound_y ('l', b), is_colliding: false, is_bound: false, val: temp_val});
+            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, min_y: def_bound_y('u', b), max_y: def_bound_y ('l', b), is_colliding: false, is_bound: false, val: temp_val});
         }
     }
     // move first row starting position up
@@ -101,7 +102,7 @@ function define_shape_dims() {
             ctxs[i].y = ctx.y - 1.5 * incr_y;
         }
     }
-    // console.log(ctxs)
+    // console.log(ctxs);
 }
 
 // draw and redraw shapes as movement is detected
@@ -137,16 +138,13 @@ let draw_shapes = function() {
     context.stroke();
 
     // counter
-    context.fillStyle = 'grey';
-    context.fillRect(ctxs[5].x + ctxs[5].w/2, bg.height/12, ctxs[10].x - ctxs[5].x, bg.height/6);
+    // context.fillStyle = 'grey';
+    // context.fillRect(ctxs[5].x + ctxs[5].w/2, bg.height/12, ctxs[10].x - ctxs[5].x, bg.height/6);
     context.fillStyle = 'black';
-    context.fillText('test', bg.width/2, bg.height/8, bg.width/6);
+    context.font = "30px Verdana";
+    context.textAlign = 'center';
+    context.fillText(counter_val, bg.width/2, bg.height/4, bg.width/6);
 }
-
-// let update_counter = function () {
-//     let context = bg.getContext("2d");
-
-// }
 
 // test for if mouse click originated in shape
 let is_mouse_in_shape = function(x, y, ctx) {
@@ -175,7 +173,7 @@ let is_boundary_colliding = function(i, dy) {
             // going down
             case 1:
                 current_col_pt = ctxs[i].y + ctxs[i].h/2 + extended_y;
-                if (current_col_pt >=  ctxs[i].min_y) {
+                if (current_col_pt >=  ctxs[i].max_y) {
                     ctxs[i].is_bound = true;    
                     return true;
                 } else {
@@ -185,7 +183,7 @@ let is_boundary_colliding = function(i, dy) {
             // going up
             case -1: 
                 current_col_pt = ctxs[i].y + ctxs[i].h/2 - extended_y;
-                if (current_col_pt <=  ctxs[i].max_y) {
+                if (current_col_pt <=  ctxs[i].min_y) {
                     ctxs[i].is_bound = true;    
                     return true;
                 } else {
@@ -257,6 +255,23 @@ let is_shape_colliding = function(i, dy) {
         default:
             return false;
     }
+}
+
+let update_counter = function() {
+    // this is not ideal but I can't find a simpler way in js
+    counter_val = 0;
+    for (let [i, ctx] of ctxs.entries()) {
+        if (ctx.b === 0 && ctx.max_y < (ctx.y + incr_y + 2)) {            
+            counter_val = counter_val + ctx.val;
+        } else if (ctx.b != 0 && ctx.min_y > (ctx.y - incr_y/2 - 3)) {
+            // console.log('min', ctx.min_y, 'cur_y', ctx.y);                
+            counter_val = counter_val + ctx.val;
+        }
+        else {
+            //nothing
+        }
+    }
+    return;
 }
 
 // function for handling when click or touch starts
@@ -395,6 +410,7 @@ let mouse_move = function(e) {
         }
 
         // redraw shape for valid movement, if any
+        update_counter();
         draw_shapes();
 
         // reset starting position
