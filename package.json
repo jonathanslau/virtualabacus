@@ -1,3 +1,19 @@
-"scripts": {
-    "start": "node app.js"
+{
+  "name": "virtualabacus",
+  "version": "1.0.0",
+  "description": "test",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanslau/virtualabacus.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonathanslau/virtualabacus/issues"
+  },
+  "homepage": "https://github.com/jonathanslau/virtualabacus#readme"
 }
