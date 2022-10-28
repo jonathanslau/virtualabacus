@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/jonathanslau/virtualabacus/issues"
   },
-  "homepage": "https://github.com/jonathanslau/virtualabacus#readme"
+  "homepage": "https://github.com/jonathanslau/virtualabacus#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
