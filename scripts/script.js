@@ -1,5 +1,6 @@
 // set up element
 const bg = document.getElementById("bg");
+const context = bg.getContext("2d");
 
 // define relative size of canvas
 bg.width = window.innerWidth - 20;
@@ -43,6 +44,14 @@ const mid_bound_y = rel_y + incr_y/5;
 const up_y_adj = - 1.25 * incr_y - 10;
 const up_bound_y = rel_y + up_y_adj;
 const lr_bound_y = bg.height;
+
+// generate menu
+function generate_menu() {
+    // title
+    context.font = "24px Verdana";
+    context.textAlign = 'center';
+    context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
+}
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
 function define_shape_dims() {
@@ -108,7 +117,6 @@ function define_shape_dims() {
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
-    let context = bg.getContext("2d");
 
     // beads
     context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
@@ -140,13 +148,15 @@ let draw_shapes = function() {
 
     // counter display
     context.fillStyle = 'black';
-    context.font = "30px Verdana";
+    context.font = "24px Verdana";
     context.textAlign = 'center';
-    context.fillText(counter_val, bg.width/2, up_bound_y - 40, bg.width/6);
+    context.fillText(counter_val, bg.width/2, up_bound_y - 20, bg.width/6);
     // counter label
-    context.font = "30px Verdana";
+    context.font = "24px Verdana";
     context.textAlign = 'center';
-    context.fillText("Result:", bg.width/4, up_bound_y - 40, bg.width/4);    
+    context.fillText("Result:", bg.width/4, up_bound_y - 20, bg.width/4);   
+    
+    generate_menu();
 }
 
 // test for if mouse click originated in shape
@@ -493,6 +503,7 @@ function set_event_handlers() {
 
 function init() {
     // initialize shapes on load
+    generate_menu();
     define_shape_dims();
     draw_shapes();
     set_event_handlers();
