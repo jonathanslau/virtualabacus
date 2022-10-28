@@ -3,7 +3,7 @@ const bg = document.getElementById("bg");
 
 // define relative size of canvas
 bg.width = window.innerWidth - 20;
-bg.height = window.innerHeight - 20;
+bg.height = window.innerHeight - 15;
 
 // set up variables
 let ctxs = []; // array to hold bead objects
@@ -14,22 +14,22 @@ let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; // flag for desktop/mboile
-let active_col_index; // track column being touched
+// let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
 
 // set up touch tracking
-current_ctx_arr.push({touch: 0, last_ctx: null}, {touch: 1, last_ctx: null});
+current_ctx_arr.push({touch: 0, last_ctx: null, last_col: null}, {touch: 1, last_ctx: null, last_col: null});
 
 // set up relative positions of beads and other parameters
 // 4 columns, fold page evenly by 5 and centerpoint x should be on folds
 const fold_x = Math.round(bg.width/4);
-const rel_w = Math.round(bg.height/14);
+const rel_w = Math.round(bg.height/16); // change this for bead sizes
 const rel_x = fold_x - rel_w;
 const incr_x = Math.round(bg.width/5);
 
 // start y on bottom half of the page
-const rel_y = Math.round(bg.height/2);
+const rel_y = Math.round(bg.height/1.8);
 const rel_h = rel_w;
 // start beads stacked
 // rel_y is centerpoint, where the rectangles will be drawn
@@ -39,8 +39,9 @@ const incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)) + 1;
 const init_bead_colour = '#D34324';
 
 // boundaries
-const mid_bound_y = rel_y + incr_y/6;
-const up_bound_y = rel_y - 1.5 * incr_y - 10;
+const mid_bound_y = rel_y + incr_y/5;
+const up_y_adj = - 1.25 * incr_y - 10;
+const up_bound_y = rel_y + up_y_adj;
 const lr_bound_y = bg.height;
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
@@ -99,7 +100,7 @@ function define_shape_dims() {
     // move first row starting position up
     for (let [i, ctx] of ctxs.entries()) {
         if (ctx.b === 0) {
-            ctxs[i].y = ctx.y - 1.5 * incr_y;
+            ctxs[i].y = ctx.y + up_y_adj + 10;
         }
     }
     // console.log(ctxs);
@@ -137,13 +138,15 @@ let draw_shapes = function() {
     context.lineTo(bg.width, up_bound_y);
     context.stroke();
 
-    // counter
-    // context.fillStyle = 'grey';
-    // context.fillRect(ctxs[5].x + ctxs[5].w/2, bg.height/12, ctxs[10].x - ctxs[5].x, bg.height/6);
+    // counter display
     context.fillStyle = 'black';
     context.font = "30px Verdana";
     context.textAlign = 'center';
-    context.fillText(counter_val, bg.width/2, bg.height/4, bg.width/6);
+    context.fillText(counter_val, bg.width/2, up_bound_y - 40, bg.width/6);
+    // counter label
+    context.font = "30px Verdana";
+    context.textAlign = 'center';
+    context.fillText("Result:", bg.width/4, up_bound_y - 40, bg.width/4);    
 }
 
 // test for if mouse click originated in shape
@@ -261,9 +264,9 @@ let update_counter = function() {
     // this is not ideal but I can't find a simpler way in js
     counter_val = 0;
     for (let [i, ctx] of ctxs.entries()) {
-        if (ctx.b === 0 && ctx.max_y < (ctx.y + incr_y + 2)) {            
+        if (ctx.b === 0 && ctx.max_y < (ctx.y + incr_y + 1)) {            
             counter_val = counter_val + ctx.val;
-        } else if (ctx.b != 0 && ctx.min_y > (ctx.y - incr_y/2 - 3)) {
+        } else if (ctx.b != 0 && ctx.min_y > (ctx.y - incr_y/2 - 2)) {
             // console.log('min', ctx.min_y, 'cur_y', ctx.y);                
             counter_val = counter_val + ctx.val;
         }
@@ -288,7 +291,8 @@ let mouse_down = function(e) {
             if (is_mouse_in_shape(start_x[t], start_y[t], ctx)) {
                 // console.log('touch', t, 'in shape', i, 'col', ctx.c);
                 current_ctx_arr[t].last_ctx = i;
-                active_col_index = ctx.c;
+                current_ctx_arr[t].last_col = ctx.c;
+                // console.log(active_col_index);
                 is_dragging = true;
             } else {
                 // console.log('not in shape');
@@ -318,7 +322,8 @@ let mouse_up = function(e) {
     is_dragging = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
-    active_col_index = null;
+    current_ctx_arr[0].last_col = null;
+    current_ctx_arr[1].last_col = null;
 }
 
 // function to handle mouse out of bounds
@@ -330,7 +335,8 @@ let mouse_out = function(e) {
     is_dragging = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
-    active_col_index = null;
+    current_ctx_arr[0].last_col = null;
+    current_ctx_arr[1].last_col = null;
 }
 
 // function to handle moving shapes
@@ -353,6 +359,25 @@ let mouse_move = function(e) {
         // calculate movement
         // let dx = mouseX - startX; // y movement only
         let dy = mouse_y[t] - start_y[t];
+
+        // "snap to fit"
+        // don't let mouse_y overshoot what the min/max position of the shape is
+        // not sure if this is the solution
+        // switch(Math.sign(dy)) {
+        //     // down
+        //     case 1:
+        //         // mouse_y[t] = Math.max(ctxs[current_ctx_arr[t].last_ctx].max_y, mouse_y[t]);
+        //         break;
+        //     // up
+        //     case -1:
+        //         // mouse_y[t] = Math.min(ctxs[current_ctx_arr[t].last_ctx].min_y, mouse_y[t]);
+        //         break;
+        //     default:
+        //         break;
+        // }
+        // recalculate dy
+        // dy = mouse_y[t] - start_y[t];
+
         // console.log('start', start_y[t], 'change', dy, 'mouse_y', mouse_y[t], 'touch', t, e)
 
         // write change to array, as this will be used to test collision
@@ -369,7 +394,7 @@ let mouse_move = function(e) {
         // bead collision
         // move everything in the column if colliding
         if (is_shape_colliding(current_ctx_arr[t].last_ctx, dy)) {
-            switch (Math.sign(dy)) {
+            switch(Math.sign(dy)) {
                 // going down
                 case 1:
                     // is this the last bead?
@@ -381,12 +406,13 @@ let mouse_move = function(e) {
                         ctxs[current_ctx_arr[t].last_ctx + 1].y += dy;
                         // check if others below also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
-                            if (ctx.c === active_col_index && i > (current_ctx_arr[t].last_ctx + 1) && is_shape_colliding(i - 1, dy)) {
+                            if (ctx.c === current_ctx_arr[t].last_col && i > (current_ctx_arr[t].last_ctx + 1) && is_shape_colliding(i - 1, dy)) {
                                 ctxs[i].y += dy;
                             }
                         }
                     }
                     break;
+                // going up
                 case -1:
                     // is this the first bead?
                     // unnecessary code now, take it out in the future                    
@@ -398,7 +424,7 @@ let mouse_move = function(e) {
                         ctxs[current_ctx_arr[t].last_ctx - 1].y += dy;
                         // check if others above also need to be moved
                         for (let [i, ctx] of ctxs.entries()) {
-                            if (ctx.c === active_col_index && i < (current_ctx_arr[t].last_ctx - 1) && (is_shape_colliding(i + 1, dy))) {                                
+                            if (ctx.c === current_ctx_arr[t].last_col && i < (current_ctx_arr[t].last_ctx - 1) && (is_shape_colliding(i + 1, dy))) {                                
                                 ctxs[i].y += dy;
                             }
                         }
