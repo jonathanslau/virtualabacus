@@ -67,10 +67,11 @@ function generate_menu() {
     context.fillStyle = 'black';
     if (!is_practice) {
         context.fillText('tap for practice', menu_x + menu_w/2, menu_y + menu_h/2.5);
-        context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);
-
+        context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);    
+    } else {
+        context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
     }
-
+    // console.log(is_practice);
 }
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
@@ -195,6 +196,15 @@ let is_mouse_in_shape = function(x, y, ctx) {
     return false;
 }
 
+let is_mouse_in_menu = function(x, y) {
+    // console.log('firing');
+    if (x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
+        return true;
+    }
+    return false;
+
+}
+
 let is_boundary_colliding = function(i, dy) {
     // set up limited scope variables
     let extended_y = incr_y/2;
@@ -315,6 +325,13 @@ let mouse_down = function(e) {
     function mouse_down_work(t) {
         start_x[t] = parseInt(e.clientX || e.targetTouches[t].clientX);
         start_y[t] = parseInt(e.clientY || e.targetTouches[t].clientY);
+
+        // check if tapping menu first
+        if (is_mouse_in_menu(start_x[t], start_y[t])){
+            is_practice = true;
+            generate_menu();
+            // console.log('working');
+        }
 
         // if starting position was in a shape, then set is_dragging to true
         for (let [i, ctx] of ctxs.entries()) {
