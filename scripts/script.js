@@ -16,6 +16,7 @@ let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; // flag for desktop/mboile
 let is_practice = false; // flag for practice mode
+let is_addition = false; // flag for addition mode
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
@@ -69,22 +70,32 @@ function generate_menu() {
         context.fillText('tap for practice', menu_x + menu_w/2, menu_y + menu_h/2.5);
         context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);    
     } else {
-        show_diff_selector();
+        show_mode_selector();
     }
     // console.log(is_practice);
 }
 
-function show_diff_selector() {
+function show_mode_selector() {
     // clear welcome text
     context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
     
-    // show diff options
-    context.fillStyle = menu_colour;
-    context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
-    context.fillStyle = 'black';
-    context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);
+    // show diff options if mode has not been selected yet
+    if (!is_addition) {
+        context.fillStyle = menu_colour;
+        context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
+        context.fillStyle = 'black';
+        context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);   
+    } else {
+        show_diff_selector();
+    }
+}
+
+function show_diff_selector() {
+    // console.log('working');
 
 }
+
+
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
 function define_shape_dims() {
@@ -210,11 +221,14 @@ let is_mouse_in_shape = function(x, y, ctx) {
 
 let is_mouse_in_menu = function(x, y) {
     // console.log('firing');
-    if (x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
+    // initial menu
+    if (!is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
+        return true;
+    } else if (is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h/4)) {
+        // console.log('working')
         return true;
     }
     return false;
-
 }
 
 let is_boundary_colliding = function(i, dy) {
@@ -339,10 +353,13 @@ let mouse_down = function(e) {
         start_y[t] = parseInt(e.clientY || e.targetTouches[t].clientY);
 
         // check if tapping menu first
-        if (is_mouse_in_menu(start_x[t], start_y[t])){
+        if (!is_practice && is_mouse_in_menu(start_x[t], start_y[t])){
             is_practice = true;
             generate_menu();
             // console.log('working');
+        } else if (is_practice && is_mouse_in_menu(start_x[t], start_y[t])) {
+            is_addition = true;
+            generate_menu();
         }
 
         // if starting position was in a shape, then set is_dragging to true
