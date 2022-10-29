@@ -15,6 +15,7 @@ let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; // flag for desktop/mboile
+let is_practice = false; // flag for practice mode
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
@@ -39,6 +40,13 @@ const rel_h = rel_w;
 const incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)) + 1; 
 const init_bead_colour = '#D34324';
 
+// menu dimensions
+let menu_x = bg.width/5;
+let menu_y = bg.height/14;
+let menu_w = bg.width * 3/5;
+let menu_h = bg.height/4;
+let menu_colour = '#db684f';
+
 // boundaries
 const mid_bound_y = rel_y + incr_y/5;
 const up_y_adj = - 1.25 * incr_y - 10;
@@ -51,6 +59,18 @@ function generate_menu() {
     context.font = "24px Verdana";
     context.textAlign = 'center';
     context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
+
+    // menu
+    context.font = "20px Verdana";
+    context.fillStyle = menu_colour;
+    context.fillRect(menu_x, menu_y, menu_w, menu_h);
+    context.fillStyle = 'black';
+    if (!is_practice) {
+        context.fillText('tap for practice', menu_x + menu_w/2, menu_y + menu_h/2.5);
+        context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);
+
+    }
+
 }
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
