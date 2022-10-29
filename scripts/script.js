@@ -64,14 +64,26 @@ function generate_menu() {
     context.font = "20px Verdana";
     context.fillStyle = menu_colour;
     context.fillRect(menu_x, menu_y, menu_w, menu_h);
-    context.fillStyle = 'black';
     if (!is_practice) {
+        context.fillStyle = 'black';
         context.fillText('tap for practice', menu_x + menu_w/2, menu_y + menu_h/2.5);
         context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);    
     } else {
-        context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
+        show_diff_selector();
     }
     // console.log(is_practice);
+}
+
+function show_diff_selector() {
+    // clear welcome text
+    context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
+    
+    // show diff options
+    context.fillStyle = menu_colour;
+    context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
+    context.fillStyle = 'black';
+    context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);
+
 }
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
