@@ -1,3 +1,5 @@
+"use strict";
+
 // set up element
 const bg = document.getElementById("bg");
 const context = bg.getContext("2d");
@@ -11,6 +13,7 @@ let ctxs = []; // array to hold bead objects
 let current_ctx_arr = []; // array to keep track of current bead being touched
 let selector_arr = []; // array to keep track of selector positions
 let is_dragging = false; // keep track of mousedown event when in shape
+let is_sliding = false; // keep track of mousedown event when in diff slider
 let start_x = []; // keep track of mouse starting position
 let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
@@ -21,12 +24,14 @@ let is_add = false; // flag for addition mode
 let is_multi = false; // flag for multiplication mode
 let add_mode;
 let multi_mode;
+let digit_diff1;
+let digit_diff2;
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
 
 // set up touch tracking
-current_ctx_arr.push({touch: 0, last_ctx: null, last_col: null}, {touch: 1, last_ctx: null, last_col: null});
+current_ctx_arr.push({touch: 0, last_ctx: null, last_col: null, last_sel: null}, {touch: 1, last_ctx: null, last_col: null, last_sel: null});
 
 // set up relative positions of beads and other parameters
 // 4 columns, fold page evenly by 5 and centerpoint x should be on folds
@@ -64,8 +69,6 @@ class mode_selector {
         this.x = x;
         this.y = y;
         this.label = label;
-    }
-    init() {
         context.fillStyle = menu_colour;
         context.fillRect(this.x, this.y, menu_w, menu_h/4);
         context.fillStyle = 'black';
@@ -82,11 +85,11 @@ class diff_slider {
         this.label = label;
         this.min = min;
         this.max = max;
-        this.sel_x;
-        this.sel_y;
-        this.sel_r;
+        this.sel_x = this.x;
+        this.sel_y = this.y;
+        this.sel_r = menu_h/14;
     }
-    init() {
+    init_class() {
         // draw labels
         context.fillStyle = 'black';
         context.font = "18px Verdana";
@@ -103,13 +106,15 @@ class diff_slider {
         context.fillRect(this.x, this.y, this.w, 2);
 
         // draw selector
-        this.sel_x = this.x;
-        this.sel_y = this.y;
-        this.sel_r = menu_h/14;
-        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r});
+        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r, start_x: this.sel_x});
         context.beginPath();
         context.arc(this.sel_x, this.sel_y, this.sel_r, 0, 2 * Math.PI);
         context.stroke();
+    }
+    update(x) {
+        context.clearRect(0, this.y - 30, bg.width, 60);    
+        this.sel_x = x;
+        this.init_class();
     }
 }
 
@@ -144,39 +149,26 @@ function show_mode_selector() {
     
     // show diff options if mode has not been selected yet
     if (!is_add && !is_multi) {
-        // context.fillStyle = menu_colour;
-        // context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
-        // context.fillStyle = 'black';
-        // context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);   
         add_mode = new mode_selector(menu_x, menu_y, 'addition');
-        add_mode.init();
-
         multi_mode = new mode_selector(menu_x, menu_y + menu_h/3, 'multiplication');
-        multi_mode.init();
-
     } else {
         show_diff_selector();
     }
 }
 
 function show_diff_selector() {
-    // console.log('working');
+    context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
+
     if (is_add) {
-        let digit_diff = new diff_slider(menu_x, menu_y + menu_h/3, 'digits', 1, 3);
-        digit_diff.init();
-    
-        let length_diff = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'length', 1, 9);
-        length_diff.init();   
-
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits', 1, 3);    
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'length', 1, 9);
     } else if (is_multi) {
-        let digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits of 1st num', 1, 3);
-        digit_diff1.init();
-    
-        let digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'digits of 2nd num', 1, 3);
-        digit_diff2.init();   
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits of 1st num', 1, 3);   
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'digits of 2nd num', 1, 3);
     }
+    digit_diff1.init_class();
+    digit_diff2.init_class();
 }
-
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
 function define_shape_dims() {
@@ -281,7 +273,9 @@ let draw_shapes = function() {
     context.textAlign = 'center';
     context.fillText("Result:", bg.width/4, up_bound_y - 20, bg.width/4);   
     
-    generate_menu();
+    // didn't need to keep regenerating menu
+    // this is triggered on init()
+    // generate_menu();
 }
 
 // test for if mouse click originated in shape
@@ -296,11 +290,10 @@ let is_mouse_in_shape = function(x, y, ctx) {
     if (x > ctx_left && x < ctx_right && y > ctx_top && y < ctx_bottom) {
         return true;
     }
-
     return false;
 }
 
-let is_mouse_in_menu = function(x, y) {
+let is_mouse_in_menu = function(x, y, t) {
     // initial menu
     if (!is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
         return true;
@@ -320,7 +313,9 @@ let is_mouse_in_menu = function(x, y) {
             let sel_top = sel.y - sel.r * 1.5;
             let sel_bottom = sel.y + sel.r * 1.5;
             if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
-                console.log(i)
+                // console.log(i)
+                current_ctx_arr[t].last_sel = i;
+                is_sliding = true;
                 return true;
             }
         }
@@ -458,7 +453,8 @@ let mouse_down = function(e) {
         // mode selector stage
         } else if (is_practice && !(is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
             generate_menu();
-        } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
+        // diff selector stage
+        } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t], t)) {
             // console.log('test')
         }
 
@@ -490,12 +486,14 @@ let mouse_down = function(e) {
 
 // function for handling mouse up, ending is_dragging
 let mouse_up = function(e) {
-    if (!is_dragging) {
-        return;
-    }
+    // should always reset even if !is_dragging
+    // if (!is_dragging) {
+    //     return;
+    // }
     e.preventDefault();
     // console.log('mouse up')
     is_dragging = false;
+    is_sliding = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
     current_ctx_arr[0].last_col = null;
@@ -504,11 +502,13 @@ let mouse_up = function(e) {
 
 // function to handle mouse out of bounds
 let mouse_out = function(e) {
-    if (!is_dragging) {
-        return;
-    }
+    // should always reset even if !is_dragging
+    // if (!is_dragging) {
+    //     return;
+    // }
     e.preventDefault();
     is_dragging = false;
+    is_sliding = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
     current_ctx_arr[0].last_col = null;
@@ -620,9 +620,28 @@ let mouse_move = function(e) {
         start_y[t] = mouse_y[t];
     }
 
-    if (!is_dragging) {
+    function sliding_work(t) {
+        // track current x,y position
+        // console.log('firing');
+        if (e.pointerType === 'touch') {
+            // console.log(e);
+            mouse_x[t] = parseInt(e.pageX);
+            mouse_y[t] = parseInt(e.pageY);
+        } else {
+            // console.log('working');
+            mouse_x[t] = parseInt(e.clientX || e.targetTouches[t].pageX);
+            mouse_y[t] = parseInt(e.clientY || e.targetTouches[t].pageY);    
+        }
+        let dx = mouse_x[t] - selector_arr[current_ctx_arr[t].last_sel].start_x;
+        console.log(dx);
+        selector_arr[current_ctx_arr[t].last_sel].x += dx;
+        digit_diff1.update(mouse_x[t]);
+        digit_diff2.update(mouse_x[t]);        
+    }
+
+    if (!is_dragging && !is_sliding) {
         return
-    // multiple touch treatment    
+    // multiple touch treatment for beads
     } else if (is_dragging && is_mobile) {
         for (let t = 0; t < e.targetTouches.length; t++) {
             if (t < 2) {
@@ -634,9 +653,12 @@ let mouse_move = function(e) {
                 }
             }
         }
-    // mouse treatment
+    // mouse treatment for beads
     } else if (is_dragging && !is_mobile) {
         mouse_move_work(0);
+    } else if (is_sliding) {
+        // console.log(is_sliding);
+        sliding_work(0);
     }
 }
 
