@@ -22,6 +22,7 @@ let is_mobile = false; // flag for desktop/mboile
 let is_practice = false; // flag for practice mode
 let is_add = false; // flag for addition mode
 let is_multi = false; // flag for multiplication mode
+let is_go = false; // go flag
 let add_mode;
 let multi_mode;
 let digit_diff1;
@@ -64,6 +65,10 @@ let menu_y = bg.height/14;
 let menu_w = bg.width * 3/5;
 let menu_h = bg.height/4;
 let menu_colour = '#db684f';
+let go_x = menu_x + menu_w/2 - menu_x/4;
+let go_y = menu_y + menu_h * (5/6);
+let go_w = menu_x/2;
+let go_h = menu_h/4;
 
 // boundaries
 const mid_bound_y = rel_y + incr_y/5;
@@ -194,14 +199,28 @@ function show_diff_selector() {
     context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
 
     if (is_add) {
-        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits', 1, 3);    
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/4), 'length', 1, 9);
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits', 1, 3);    
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'length', 1, 9);
     } else if (is_multi) {
-        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits of 1st num', 1, 3);   
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/4), 'digits of 2nd num', 1, 3);
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits of 1st num', 1, 3);   
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'digits of 2nd num', 1, 3);
     }
     digit_diff1.init_class();
     digit_diff2.init_class();
+
+    go_button();
+}
+
+function go_button() {
+    // draw button
+    context.clearRect(go_x - 1, go_y - 1, go_w + 2, go_h + 2);
+    context.fillStyle = menu_colour;
+    context.fillRect(go_x, go_y, go_w, go_h);
+
+    // draw label
+    context.fillStyle = 'black';
+    context.font = "20px Verdana";
+    context.fillText('go', go_x + go_w/2, go_y + go_h * (2/3));
 }
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
@@ -359,6 +378,12 @@ let is_mouse_in_menu = function(x, y, t) {
                 return true;
             }
         }
+        // check go button
+        if (x > go_x && x < go_x + go_w && y > go_y && y < go_y + go_h) {
+            console.log('working');
+            is_go = true;
+            return true;
+        }
         return false;
     }
     return false;
@@ -493,6 +518,11 @@ let mouse_down = function(e) {
             generate_menu();
         // diff selector stage
         } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t], t)) {
+            if (!is_go) {
+                // nothing
+            } else if (is_go) {
+                // fire the question generator
+            }
         }
 
         // if starting position was in a shape, then set is_dragging to true
