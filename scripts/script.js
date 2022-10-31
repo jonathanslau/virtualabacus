@@ -9,6 +9,7 @@ bg.height = window.innerHeight - 15;
 // set up variables
 let ctxs = []; // array to hold bead objects
 let current_ctx_arr = []; // array to keep track of current bead being touched
+let selector_arr = []; // array to keep track of selector positions
 let is_dragging = false; // keep track of mousedown event when in shape
 let start_x = []; // keep track of mouse starting position
 let start_y = []; // keep track of mouse starting position
@@ -81,6 +82,9 @@ class diff_slider {
         this.label = label;
         this.min = min;
         this.max = max;
+        this.sel_x;
+        this.sel_y;
+        this.sel_r;
     }
     init() {
         // draw labels
@@ -91,7 +95,7 @@ class diff_slider {
         for (let d = this.min; d <= this.max; d++) {
             // console.log(d)
             context.font = "16px Verdana";
-            context.fillText(d, this.x + this.w/(this.max - 1) * (d - 1), this.y + 20); 
+            context.fillText(d, this.x + this.w/(this.max - 1) * (d - 1), this.y + 25); 
         }
         
         // draw slider
@@ -99,8 +103,12 @@ class diff_slider {
         context.fillRect(this.x, this.y, this.w, 2);
 
         // draw selector
+        this.sel_x = this.x;
+        this.sel_y = this.y;
+        this.sel_r = menu_h/14;
+        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r});
         context.beginPath();
-        context.arc(this.x, this.y, menu_h/14, 0, 2 * Math.PI);
+        context.arc(this.sel_x, this.sel_y, this.sel_r, 0, 2 * Math.PI);
         context.stroke();
     }
 }
@@ -112,7 +120,7 @@ function generate_title() {
     context.textAlign = 'center';
     context.font = "24px Verdana";
     context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
-    console.log('firing');
+    // console.log('firing');
 }
 
 function generate_menu() {
@@ -293,18 +301,30 @@ let is_mouse_in_shape = function(x, y, ctx) {
 }
 
 let is_mouse_in_menu = function(x, y) {
-    // console.log('firing');
     // initial menu
     if (!is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
         return true;
-    } else if (is_practice && x > add_mode.x && x < (add_mode.x + menu_w) && y > add_mode.y && y < (add_mode.y + menu_h/4)) {
-        // console.log('addition');
+    // mode selector
+    } else if (is_practice && !(is_add || is_multi) && x > add_mode.x && x < (add_mode.x + menu_w) && y > add_mode.y && y < (add_mode.y + menu_h/4)) {
         is_add = true;
         return true;
-    } else if (is_practice && x > multi_mode.x && x < (multi_mode.x + menu_w) && y > multi_mode.y && y < (multi_mode.y + menu_h/4)) {
-        // console.log('multiplication');
+    } else if (is_practice && !(is_add || is_multi) && x > multi_mode.x && x < (multi_mode.x + menu_w) && y > multi_mode.y && y < (multi_mode.y + menu_h/4)) {
         is_multi = true;
         return true;
+    // diff selector
+    } else if (is_practice && (is_add || is_multi)) {
+        // console.log('firing');
+        for (let [i, sel] of selector_arr.entries()) {
+            let sel_left = sel.x - sel.r * 1.5;
+            let sel_right = sel.x + sel.r * 1.5;
+            let sel_top = sel.y - sel.r * 1.5;
+            let sel_bottom = sel.y + sel.r * 1.5;
+            if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
+                console.log(i)
+                return true;
+            }
+        }
+        return false;
     }
     return false;
 }
@@ -436,8 +456,10 @@ let mouse_down = function(e) {
             generate_menu();
             // console.log('working');
         // mode selector stage
-        } else if (is_practice && is_mouse_in_menu(start_x[t], start_y[t])) {
+        } else if (is_practice && !(is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
             generate_menu();
+        } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
+            // console.log('test')
         }
 
         // if starting position was in a shape, then set is_dragging to true
