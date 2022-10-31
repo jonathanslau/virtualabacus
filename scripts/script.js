@@ -89,6 +89,8 @@ class diff_slider {
         this.sel_y = this.y;
         this.sel_r = menu_h/14;
         selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r, start_x: this.sel_x});
+        this.x_ticks = [];
+        this.selected;
 
     }
     init_class() {
@@ -99,8 +101,18 @@ class diff_slider {
 
         for (let d = this.min; d <= this.max; d++) {
             // console.log(d)
+            let temp_x = this.x + this.w/(this.max - 1) * (d - 1);
+            let temp_x_lr = temp_x - 0.5 * this.w/(this.max - 1);
+            let temp_x_ur = temp_x + 0.5 * this.w/(this.max - 1);
+            if (this.sel_x >= temp_x_lr && this.sel_x < temp_x_ur) {
+                context.fillStyle = menu_colour;
+                this.selected = d;
+            } else {
+                context.fillStyle = 'black';
+            }
             context.font = "16px Verdana";
-            context.fillText(d, this.x + this.w/(this.max - 1) * (d - 1), this.y + 25); 
+            this.x_ticks.push({diff_int: d, x: temp_x})
+            context.fillText(d, temp_x, this.y + 25); 
         }
         
         // draw slider
@@ -113,8 +125,14 @@ class diff_slider {
         context.stroke();
     }
     update(x) {
-        context.clearRect(0, this.y - 30, bg.width, 60);    
-        this.sel_x = x;
+        context.clearRect(0, this.y - 30, bg.width, 60);
+        if (x <= this.x) {
+            this.sel_x = this.x;
+        }  else if (x >= this.x + this.w)
+            this.sel_x = this.x + this.w;
+        else {
+            this.sel_x = x;
+        }
         this.init_class();
     }
 }
@@ -271,10 +289,6 @@ let draw_shapes = function() {
     context.font = "24px Verdana";
     context.textAlign = 'center';
     context.fillText("Result:", bg.width/4, up_bound_y - 20, bg.width/4);   
-    
-    // didn't need to keep regenerating menu
-    // this is triggered on init()
-    // generate_menu();
 }
 
 // test for if mouse click originated in shape
@@ -311,7 +325,6 @@ let is_mouse_in_menu = function(x, y, t) {
             let sel_right = sel.x + sel.r * 1.5;
             let sel_top = sel.y - sel.r * 1.5;
             let sel_bottom = sel.y + sel.r * 1.5;
-            console.log(i, sel_left, sel_right);
             if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
                 current_ctx_arr[t].last_sel = i;
                 is_sliding = true;
@@ -361,7 +374,6 @@ let is_boundary_colliding = function(i, dy) {
     }
     return do_bound_check();
 }
-
 
 // test for collision between beads
 let is_shape_colliding = function(i, dy) {
@@ -448,13 +460,11 @@ let mouse_down = function(e) {
         if (!is_practice && is_mouse_in_menu(start_x[t], start_y[t])){
             is_practice = true;
             generate_menu();
-            // console.log('working');
         // mode selector stage
         } else if (is_practice && !(is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
             generate_menu();
         // diff selector stage
         } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t], t)) {
-            // console.log('test')
         }
 
         // if starting position was in a shape, then set is_dragging to true
@@ -469,7 +479,6 @@ let mouse_down = function(e) {
                 // console.log('not in shape');
             }
         }
-        // console.log('arr', current_ctx_arr);
     }
 
     if (is_mobile) {
@@ -485,12 +494,7 @@ let mouse_down = function(e) {
 
 // function for handling mouse up, ending is_dragging
 let mouse_up = function(e) {
-    // should always reset even if !is_dragging
-    // if (!is_dragging) {
-    //     return;
-    // }
     e.preventDefault();
-    // console.log('mouse up')
     is_dragging = false;
     is_sliding = false;
     current_ctx_arr[0].last_ctx = null;
@@ -501,10 +505,6 @@ let mouse_up = function(e) {
 
 // function to handle mouse out of bounds
 let mouse_out = function(e) {
-    // should always reset even if !is_dragging
-    // if (!is_dragging) {
-    //     return;
-    // }
     e.preventDefault();
     is_dragging = false;
     is_sliding = false;
