@@ -22,11 +22,11 @@ let is_mobile = false; // flag for desktop/mboile
 let is_practice = false; // flag for practice mode
 let is_add = false; // flag for addition mode
 let is_multi = false; // flag for multiplication mode
-let is_go = false; // go flag
 let add_mode;
 let multi_mode;
 let digit_diff1;
 let digit_diff2;
+let is_go = false; // go flag
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
@@ -107,7 +107,6 @@ class diff_slider {
             start_x: this.sel_x,
             lbound: this.x,
             rbound: this.x + this.w});
-        this.x_ticks = [];
         this.selected;
 
     }
@@ -117,20 +116,19 @@ class diff_slider {
         context.font = "18px Verdana";
         context.fillText(this.label, this.x + this.w/2, this.y - 10); 
 
-        for (let d = this.min; d <= this.max; d++) {
+        for (let d = 0; d <= (this.max - this.min); d++) {
             // console.log(d)
-            let temp_x = this.x + this.w/(this.max - 1) * (d - 1);
-            let temp_x_lr = temp_x - 0.5 * this.w/(this.max - 1);
-            let temp_x_ur = temp_x + 0.5 * this.w/(this.max - 1);
+            let temp_x = this.x + this.w/(this.max - this.min) * (d);
+            let temp_x_lr = temp_x - 0.5 * this.w/(this.max - this.min);
+            let temp_x_ur = temp_x + 0.5 * this.w/(this.max - this.min);
             if (this.sel_x >= temp_x_lr && this.sel_x < temp_x_ur) {
                 context.fillStyle = menu_colour;
-                this.selected = d;
+                this.selected = this.min + d;
             } else {
                 context.fillStyle = 'black';
             }
             context.font = "16px Verdana";
-            this.x_ticks.push({diff_int: d, x: temp_x})
-            context.fillText(d, temp_x, this.y + 25); 
+            context.fillText(this.min + d, temp_x, this.y + 25); 
         }
         
         // draw slider
@@ -158,6 +156,64 @@ class diff_slider {
         selector_arr[current_ctx_arr[t].last_sel].start_x = this.sel_x;
     }
 }
+
+class question {
+    constructor(diff1, diff2) {
+        this.diff1 = digit_diff1.selected;
+        this.diff2 = digit_diff2.selected;
+        this.question_int = 0;
+        this.question_str = '';
+        this.temp_int = 0;
+        this.temp_str = '';
+        this.answer_int = 0;
+        this.answer_str = '';
+        this.ans_correct_count = 0;
+        this.question_count = 0;
+        // clear previous menus
+        context.clearRect(0, menu_y + menu_h/5 - 25, bg.width, menu_h + 20);
+    }
+    generate_int() {
+        return Math.floor(Math.random() * 10);
+    }
+    generate_add() {
+        for (let n = 0; n < this.diff2; n++) {
+            this.temp_str = '';
+            for (let i = 0; i < this.diff1; i++) {
+                this.temp_int = this.generate_int();
+                if (i === 0 && this.temp_int === 0) {
+                    this.temp_int = 1;
+                }
+                this.temp_str = this.temp_str.concat(String(this.temp_int));
+            }
+            this.answer_int += Number(this.temp_str);
+            if (n < this.diff2 - 1) {
+                this.question_str = this.question_str.concat(this.temp_str, ' + ');
+
+            } else {
+                this.question_str = this.question_str.concat(this.temp_str);
+            }
+        }
+    }
+    generate_multi() {
+
+    }
+    display() {
+        console.log(this.diff1, this.diff2);
+        if (is_add) {
+            this.generate_add();
+            console.log('question', this.question_str, 'answer', this.answer_int);
+        } else if (is_multi) {
+            this.generate_multi();
+        }
+        context.font = "20px Verdana";
+        context.fillStyle = 'black';
+        context.fillText(this.question_str, menu_x + menu_w/2, menu_y + menu_h/2, bg.width); 
+
+    }
+    
+
+}
+
 
 // generate menu
 function generate_title() {
@@ -200,7 +256,7 @@ function show_diff_selector() {
 
     if (is_add) {
         digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits', 1, 3);    
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'length', 1, 9);
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'length', 2, 9);
     } else if (is_multi) {
         digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits of 1st num', 1, 3);   
         digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'digits of 2nd num', 1, 3);
@@ -365,7 +421,7 @@ let is_mouse_in_menu = function(x, y, t) {
         is_multi = true;
         return true;
     // diff selector
-    } else if (is_practice && (is_add || is_multi)) {
+    } else if (is_practice && (is_add || is_multi) && !is_go) {
         // console.log('firing');
         for (let [i, sel] of selector_arr.entries()) {
             let sel_left = sel.lbound;
@@ -380,8 +436,10 @@ let is_mouse_in_menu = function(x, y, t) {
         }
         // check go button
         if (x > go_x && x < go_x + go_w && y > go_y && y < go_y + go_h) {
-            console.log('working');
+            // console.log('working');
             is_go = true;
+            let practice_question = new question;
+            practice_question.display();
             return true;
         }
         return false;
