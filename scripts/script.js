@@ -31,7 +31,15 @@ let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
 
 // set up touch tracking
-current_ctx_arr.push({touch: 0, last_ctx: null, last_col: null, last_sel: null}, {touch: 1, last_ctx: null, last_col: null, last_sel: null});
+current_ctx_arr.push(
+    {touch: 0, 
+        last_ctx: null, 
+        last_col: null, 
+        last_sel: null}, 
+    {touch: 1, 
+        last_ctx: null, 
+        last_col: null, 
+        last_sel: null});
 
 // set up relative positions of beads and other parameters
 // 4 columns, fold page evenly by 5 and centerpoint x should be on folds
@@ -88,7 +96,12 @@ class diff_slider {
         this.sel_x = this.x;
         this.sel_y = this.y;
         this.sel_r = menu_h/14;
-        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r, start_x: this.sel_x});
+        selector_arr.push({x: this.sel_x, 
+            y: this.sel_y, 
+            r: this.sel_r, 
+            start_x: this.sel_x,
+            lbound: this.x,
+            rbound: this.x + this.w});
         this.x_ticks = [];
         this.selected;
 
@@ -124,16 +137,20 @@ class diff_slider {
         context.arc(this.sel_x, this.sel_y, this.sel_r, 0, 2 * Math.PI);
         context.stroke();
     }
-    update(x) {
-        context.clearRect(0, this.y - 30, bg.width, 60);
+    update(t, x) {
+        context.clearRect(0, this.y - 25, bg.width, 50);
         if (x <= this.x) {
             this.sel_x = this.x;
-        }  else if (x >= this.x + this.w)
+            selector_arr[current_ctx_arr[t].last_sel].x = this.sel_x;
+        }  else if (x >= this.x + this.w) {
             this.sel_x = this.x + this.w;
-        else {
+            selector_arr[current_ctx_arr[t].last_sel].x = this.sel_x;
+        } else {
             this.sel_x = x;
         }
         this.init_class();
+        // reset starting position
+        selector_arr[current_ctx_arr[t].last_sel].start_x = this.sel_x;
     }
 }
 
@@ -178,10 +195,10 @@ function show_diff_selector() {
 
     if (is_add) {
         digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits', 1, 3);    
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'length', 1, 9);
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/4), 'length', 1, 9);
     } else if (is_multi) {
         digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits of 1st num', 1, 3);   
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'digits of 2nd num', 1, 3);
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/4), 'digits of 2nd num', 1, 3);
     }
     digit_diff1.init_class();
     digit_diff2.init_class();
@@ -237,7 +254,17 @@ function define_shape_dims() {
             } else {
                 temp_val = 1 * 10**(3 - c);
             }
-            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, min_y: def_bound_y('u', b), max_y: def_bound_y ('l', b), is_colliding: false, is_bound: false, val: temp_val});
+            ctxs.push({c: c,
+                b: b, 
+                x: rel_x + c * incr_x, 
+                y: rel_y + b * incr_y, 
+                w: rel_w, 
+                h: rel_h, 
+                min_y: def_bound_y('u', b), 
+                max_y: def_bound_y ('l', b), 
+                is_colliding: false, 
+                is_bound: false, 
+                val: temp_val});
         }
     }
     // move first row starting position up
@@ -253,7 +280,8 @@ function define_shape_dims() {
 let draw_shapes = function() {
 
     // beads
-    context.clearRect(0, menu_y + menu_h + 2, bg.width, bg.height - (menu_y + menu_h + 2)); // clear entire canvas and redraw all shapes
+    // clear entire canvas and redraw all shapes
+    context.clearRect(0, menu_y + menu_h + 2, bg.width, bg.height - (menu_y + menu_h + 2));
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
@@ -321,8 +349,8 @@ let is_mouse_in_menu = function(x, y, t) {
     } else if (is_practice && (is_add || is_multi)) {
         // console.log('firing');
         for (let [i, sel] of selector_arr.entries()) {
-            let sel_left = sel.x - sel.r * 1.5;
-            let sel_right = sel.x + sel.r * 1.5;
+            let sel_left = sel.lbound;
+            let sel_right = sel.rbound;
             let sel_top = sel.y - sel.r * 1.5;
             let sel_bottom = sel.y + sel.r * 1.5;
             if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
@@ -637,12 +665,10 @@ let mouse_move = function(e) {
 
         // update position of slider
         if (current_ctx_arr[t].last_sel === 0) {
-            digit_diff1.update(mouse_x[t]);
+            digit_diff1.update(t, mouse_x[t]);
         } else {
-            digit_diff2.update(mouse_x[t]);    
+            digit_diff2.update(t, mouse_x[t]);    
         }    
-        // reset starting position
-        selector_arr[current_ctx_arr[t].last_sel].start_x = selector_arr[current_ctx_arr[t].last_sel].x;
     }
 
     if (!is_dragging && !is_sliding) {
