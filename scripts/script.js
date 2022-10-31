@@ -88,6 +88,8 @@ class diff_slider {
         this.sel_x = this.x;
         this.sel_y = this.y;
         this.sel_r = menu_h/14;
+        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r, start_x: this.sel_x});
+
     }
     init_class() {
         // draw labels
@@ -106,7 +108,6 @@ class diff_slider {
         context.fillRect(this.x, this.y, this.w, 2);
 
         // draw selector
-        selector_arr.push({x: this.sel_x, y: this.sel_y, r: this.sel_r, start_x: this.sel_x});
         context.beginPath();
         context.arc(this.sel_x, this.sel_y, this.sel_r, 0, 2 * Math.PI);
         context.stroke();
@@ -125,7 +126,6 @@ function generate_title() {
     context.textAlign = 'center';
     context.font = "24px Verdana";
     context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
-    // console.log('firing');
 }
 
 function generate_menu() {
@@ -140,7 +140,6 @@ function generate_menu() {
     } else {
         show_mode_selector();
     }
-    // console.log(is_practice);
 }
 
 function show_mode_selector() {
@@ -312,8 +311,8 @@ let is_mouse_in_menu = function(x, y, t) {
             let sel_right = sel.x + sel.r * 1.5;
             let sel_top = sel.y - sel.r * 1.5;
             let sel_bottom = sel.y + sel.r * 1.5;
+            console.log(i, sel_left, sel_right);
             if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
-                // console.log(i)
                 current_ctx_arr[t].last_sel = i;
                 is_sliding = true;
                 return true;
@@ -633,10 +632,17 @@ let mouse_move = function(e) {
             mouse_y[t] = parseInt(e.clientY || e.targetTouches[t].pageY);    
         }
         let dx = mouse_x[t] - selector_arr[current_ctx_arr[t].last_sel].start_x;
-        console.log(dx);
+        // console.log(current_ctx_arr[t].last_sel, dx);
         selector_arr[current_ctx_arr[t].last_sel].x += dx;
-        digit_diff1.update(mouse_x[t]);
-        digit_diff2.update(mouse_x[t]);        
+
+        // update position of slider
+        if (current_ctx_arr[t].last_sel === 0) {
+            digit_diff1.update(mouse_x[t]);
+        } else {
+            digit_diff2.update(mouse_x[t]);    
+        }    
+        // reset starting position
+        selector_arr[current_ctx_arr[t].last_sel].start_x = selector_arr[current_ctx_arr[t].last_sel].x;
     }
 
     if (!is_dragging && !is_sliding) {
