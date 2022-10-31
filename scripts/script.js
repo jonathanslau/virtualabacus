@@ -16,7 +16,10 @@ let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; // flag for desktop/mboile
 let is_practice = false; // flag for practice mode
-let is_addition = false; // flag for addition mode
+let is_add = false; // flag for addition mode
+let is_multi = false; // flag for multiplication mode
+let add_mode;
+let multi_mode;
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
@@ -54,13 +57,65 @@ const up_y_adj = - 1.25 * incr_y - 10;
 const up_bound_y = rel_y + up_y_adj;
 const lr_bound_y = bg.height;
 
-// generate menu
-function generate_menu() {
-    // title
-    context.font = "24px Verdana";
-    context.textAlign = 'center';
-    context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
+// mode selector class
+class mode_selector {
+    constructor(x, y, label) {
+        this.x = x;
+        this.y = y;
+        this.label = label;
+    }
+    init() {
+        context.fillStyle = menu_colour;
+        context.fillRect(this.x, this.y, menu_w, menu_h/4);
+        context.fillStyle = 'black';
+        context.fillText(this.label, this.x + menu_w/2, this.y + menu_h/6);   
+    }
+}
 
+// diff slider class
+class diff_slider {
+    constructor(x, y, label, min, max) {
+        this.x = x;
+        this.y = y;
+        this.w = menu_w;
+        this.label = label;
+        this.min = min;
+        this.max = max;
+    }
+    init() {
+        // draw labels
+        context.fillStyle = 'black';
+        context.font = "18px Verdana";
+        context.fillText(this.label, this.x + this.w/2, this.y - 10); 
+
+        for (let d = this.min; d <= this.max; d++) {
+            // console.log(d)
+            context.font = "16px Verdana";
+            context.fillText(d, this.x + this.w/(this.max - 1) * (d - 1), this.y + 20); 
+        }
+        
+        // draw slider
+        context.fillStyle = menu_colour;
+        context.fillRect(this.x, this.y, this.w, 2);
+
+        // draw selector
+        context.beginPath();
+        context.arc(this.x, this.y, menu_h/14, 0, 2 * Math.PI);
+        context.stroke();
+    }
+}
+
+// generate menu
+function generate_title() {
+    // title
+    context.fillStyle = 'black';
+    context.textAlign = 'center';
+    context.font = "24px Verdana";
+    context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
+    console.log('firing');
+}
+
+function generate_menu() {
     // menu
     context.font = "20px Verdana";
     context.fillStyle = menu_colour;
@@ -80,11 +135,17 @@ function show_mode_selector() {
     context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
     
     // show diff options if mode has not been selected yet
-    if (!is_addition) {
-        context.fillStyle = menu_colour;
-        context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
-        context.fillStyle = 'black';
-        context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);   
+    if (!is_add && !is_multi) {
+        // context.fillStyle = menu_colour;
+        // context.fillRect(menu_x, menu_y, menu_w, menu_h/4);
+        // context.fillStyle = 'black';
+        // context.fillText('addition', menu_x + menu_w/2, menu_y + menu_h/6);   
+        add_mode = new mode_selector(menu_x, menu_y, 'addition');
+        add_mode.init();
+
+        multi_mode = new mode_selector(menu_x, menu_y + menu_h/3, 'multiplication');
+        multi_mode.init();
+
     } else {
         show_diff_selector();
     }
@@ -92,9 +153,21 @@ function show_mode_selector() {
 
 function show_diff_selector() {
     // console.log('working');
+    if (is_add) {
+        let digit_diff = new diff_slider(menu_x, menu_y + menu_h/3, 'digits', 1, 3);
+        digit_diff.init();
+    
+        let length_diff = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'length', 1, 9);
+        length_diff.init();   
 
+    } else if (is_multi) {
+        let digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/3, 'digits of 1st num', 1, 3);
+        digit_diff1.init();
+    
+        let digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (2/3), 'digits of 2nd num', 1, 3);
+        digit_diff2.init();   
+    }
 }
-
 
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
@@ -163,7 +236,7 @@ function define_shape_dims() {
 let draw_shapes = function() {
 
     // beads
-    context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
+    context.clearRect(0, menu_y + menu_h + 2, bg.width, bg.height - (menu_y + menu_h + 2)); // clear entire canvas and redraw all shapes
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
@@ -224,8 +297,13 @@ let is_mouse_in_menu = function(x, y) {
     // initial menu
     if (!is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
         return true;
-    } else if (is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h/4)) {
-        // console.log('working')
+    } else if (is_practice && x > add_mode.x && x < (add_mode.x + menu_w) && y > add_mode.y && y < (add_mode.y + menu_h/4)) {
+        // console.log('addition');
+        is_add = true;
+        return true;
+    } else if (is_practice && x > multi_mode.x && x < (multi_mode.x + menu_w) && y > multi_mode.y && y < (multi_mode.y + menu_h/4)) {
+        // console.log('multiplication');
+        is_multi = true;
         return true;
     }
     return false;
@@ -357,8 +435,8 @@ let mouse_down = function(e) {
             is_practice = true;
             generate_menu();
             // console.log('working');
+        // mode selector stage
         } else if (is_practice && is_mouse_in_menu(start_x[t], start_y[t])) {
-            is_addition = true;
             generate_menu();
         }
 
@@ -569,6 +647,7 @@ function set_event_handlers() {
 
 function init() {
     // initialize shapes on load
+    generate_title();
     generate_menu();
     define_shape_dims();
     draw_shapes();
