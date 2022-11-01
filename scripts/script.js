@@ -27,6 +27,8 @@ let multi_mode;
 let digit_diff1;
 let digit_diff2;
 let is_go = false; // go flag
+let practice_question;
+let is_paused; // break between checking ans and next question
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
@@ -198,22 +200,43 @@ class question {
 
     }
     display() {
-        console.log(this.diff1, this.diff2);
+        is_paused = false;
+        this.question_str = '';
+        this.answer_int = 0;
+        context.clearRect(0, menu_y, bg.width, menu_h);
+        // console.log(this.diff1, this.diff2);
         if (is_add) {
             this.generate_add();
-            console.log('question', this.question_str, 'answer', this.answer_int);
         } else if (is_multi) {
             this.generate_multi();
         }
         context.font = "20px Verdana";
         context.fillStyle = 'black';
-        context.fillText(this.question_str, menu_x + menu_w/2, menu_y + menu_h/2, bg.width); 
-
+        context.fillText(this.question_str, menu_x + menu_w/2, menu_y + menu_h/3, bg.width); 
+        go_button(false);
     }
-    
+    check_ans() {
+        let temp_result;
 
+        if (counter_val === this.answer_int) {
+            temp_result = 'correct!';
+            this.ans_correct_count += 1;
+            this.question_count += 1;
+        } else {
+            temp_result = 'false!';
+            this.question_count += 1;
+        }
+        go_button(true);
+        // practice_question.display();
+        context.font = "16px Verdana";
+        context.fillStyle = 'black';
+        context.fillText(temp_result.concat(' ans was ', String(this.answer_int)), menu_x + menu_w/2, menu_y + menu_h * (1/5), bg.width); 
+        temp_result = ''
+        temp_result = temp_result.concat('score: ', String(this.ans_correct_count), ' out of ', String(this.question_count));
+        context.fillText(temp_result, menu_x + menu_w/2, menu_y + menu_h * (3/5), bg.width); 
+        is_paused = true;
+    }
 }
-
 
 // generate menu
 function generate_title() {
@@ -264,24 +287,37 @@ function show_diff_selector() {
     digit_diff1.init_class();
     digit_diff2.init_class();
 
-    go_button();
+    go_button(false);
 }
 
-function go_button() {
+function go_button(is_next) {
     // draw button
     context.clearRect(go_x - 1, go_y - 1, go_w + 2, go_h + 2);
     context.fillStyle = menu_colour;
-    context.fillRect(go_x, go_y, go_w, go_h);
+    if (is_go) {
+        context.fillRect(go_x - go_w, go_y, go_w * 3, go_h * 1.1);
+    } else {
+        context.fillRect(go_x, go_y, go_w, go_h);
+    }
 
     // draw label
     context.fillStyle = 'black';
     context.font = "20px Verdana";
-    context.fillText('go', go_x + go_w/2, go_y + go_h * (2/3));
+    let temp_text;
+    if (is_go && !is_next) {
+        context.fillText('check ans', go_x + go_w/2, go_y + go_h * (2/3));
+    } else if (is_go && is_next) {
+        context.fillText('next', go_x + go_w/2, go_y + go_h * (2/3));
+
+    } else {
+        context.fillText('go', go_x + go_w/2, go_y + go_h * (2/3));
+    }
 }
 
 // c, b, x, y, w, h, is_colliding, is_bound, val
 function define_shape_dims() {
-    // init array
+    // init array or empty array
+    ctxs = [];
     // column loop
     function def_bound_y(d, b) {
         switch(b) {
@@ -356,7 +392,7 @@ let draw_shapes = function() {
 
     // beads
     // clear entire canvas and redraw all shapes
-    context.clearRect(0, menu_y + menu_h + 2, bg.width, bg.height - (menu_y + menu_h + 2));
+    context.clearRect(0, up_bound_y - 40, bg.width, bg.height - (up_bound_y - 40));
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
@@ -438,11 +474,21 @@ let is_mouse_in_menu = function(x, y, t) {
         if (x > go_x && x < go_x + go_w && y > go_y && y < go_y + go_h) {
             // console.log('working');
             is_go = true;
-            let practice_question = new question;
+            practice_question = new question;
             practice_question.display();
             return true;
         }
         return false;
+    // check ans
+    } else if (is_go && x > go_x && x < go_x + go_w * 3 && y > go_y && y < go_y + go_h * 1.1) {
+        // console.log('firing');
+        if (!is_paused) {
+            practice_question.check_ans();
+        } else {
+            define_shape_dims();
+            draw_shapes();
+            practice_question.display();
+        }
     }
     return false;
 }
