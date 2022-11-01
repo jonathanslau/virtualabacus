@@ -197,7 +197,28 @@ class question {
         }
     }
     generate_multi() {
+        this.temp_str = ''
+        for (let i = 0; i < this.diff1; i++) {
+            this.temp_int = this.generate_int();
+            if (i === 0 && this.temp_int === 0) {
+                this.temp_int = 1;
+            }
+            this.temp_str = this.temp_str.concat(String(this.temp_int));
+        }
 
+        this.answer_int += Number(this.temp_str);
+        this.question_str = this.question_str.concat(this.temp_str, ' x ');
+        this.temp_str = ''
+
+        for (let i = 0; i < this.diff2; i++) {
+            this.temp_int = this.generate_int();
+            if (i === 0 && this.temp_int === 0) {
+                this.temp_int = 1;
+            }
+            this.temp_str = this.temp_str.concat(String(this.temp_int));
+        }
+        this.answer_int = this.answer_int * Number(this.temp_str);
+        this.question_str = this.question_str.concat(this.temp_str);
     }
     display() {
         is_paused = false;
@@ -281,8 +302,8 @@ function show_diff_selector() {
         digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits', 1, 3);    
         digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'length', 2, 9);
     } else if (is_multi) {
-        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits of 1st num', 1, 3);   
-        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'digits of 2nd num', 1, 3);
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits of 1st num', 1, 2);   
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'digits of 2nd num', 1, 2);
     }
     digit_diff1.init_class();
     digit_diff2.init_class();
