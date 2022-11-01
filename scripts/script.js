@@ -1,5 +1,8 @@
+"use strict";
+
 // set up element
 const bg = document.getElementById("bg");
+const context = bg.getContext("2d");
 
 // define relative size of canvas
 bg.width = window.innerWidth - 20;
@@ -8,18 +11,38 @@ bg.height = window.innerHeight - 15;
 // set up variables
 let ctxs = []; // array to hold bead objects
 let current_ctx_arr = []; // array to keep track of current bead being touched
+let selector_arr = []; // array to keep track of selector positions
 let is_dragging = false; // keep track of mousedown event when in shape
+let is_sliding = false; // keep track of mousedown event when in diff slider
 let start_x = []; // keep track of mouse starting position
 let start_y = []; // keep track of mouse starting position
 let mouse_x = []; // mouse moved to position
 let mouse_y = []; // mouse moved to position
 let is_mobile = false; // flag for desktop/mboile
+let is_practice = false; // flag for practice mode
+let is_add = false; // flag for addition mode
+let is_multi = false; // flag for multiplication mode
+let add_mode;
+let multi_mode;
+let digit_diff1;
+let digit_diff2;
+let is_go = false; // go flag
+let practice_question;
+let is_paused; // break between checking ans and next question
 // let active_col_index; // track column being touched
 let counter_val = 0; // track current numeric value of abacus
 const last_bead_index = 4; // immutable b value for last bead in column
 
 // set up touch tracking
-current_ctx_arr.push({touch: 0, last_ctx: null, last_col: null}, {touch: 1, last_ctx: null, last_col: null});
+current_ctx_arr.push(
+    {touch: 0, 
+        last_ctx: null, 
+        last_col: null, 
+        last_sel: null}, 
+    {touch: 1, 
+        last_ctx: null, 
+        last_col: null, 
+        last_sel: null});
 
 // set up relative positions of beads and other parameters
 // 4 columns, fold page evenly by 5 and centerpoint x should be on folds
@@ -38,15 +61,284 @@ const rel_h = rel_w;
 const incr_y = Math.round(2 * Math.sqrt((rel_w/2)**2 + (rel_h/2)**2)) + 1; 
 const init_bead_colour = '#D34324';
 
+// menu dimensions
+let menu_x = bg.width/5;
+let menu_y = bg.height/14;
+let menu_w = bg.width * 3/5;
+let menu_h = bg.height/4;
+let menu_colour = '#db684f';
+let go_x = menu_x + menu_w/2 - menu_x/4;
+let go_y = menu_y + menu_h * (5/6);
+let go_w = menu_x/2;
+let go_h = menu_h/4;
+
 // boundaries
 const mid_bound_y = rel_y + incr_y/5;
 const up_y_adj = - 1.25 * incr_y - 10;
 const up_bound_y = rel_y + up_y_adj;
 const lr_bound_y = bg.height;
 
+// mode selector class
+class mode_selector {
+    constructor(x, y, label) {
+        this.x = x;
+        this.y = y;
+        this.label = label;
+        context.fillStyle = menu_colour;
+        context.fillRect(this.x, this.y, menu_w, menu_h/4);
+        context.fillStyle = 'black';
+        context.fillText(this.label, this.x + menu_w/2, this.y + menu_h/6);   
+    }
+}
+
+// diff slider class
+class diff_slider {
+    constructor(x, y, label, min, max) {
+        this.x = x;
+        this.y = y;
+        this.w = menu_w;
+        this.label = label;
+        this.min = min;
+        this.max = max;
+        this.sel_x = this.x;
+        this.sel_y = this.y;
+        this.sel_r = menu_h/14;
+        selector_arr.push({x: this.sel_x, 
+            y: this.sel_y, 
+            r: this.sel_r, 
+            start_x: this.sel_x,
+            lbound: this.x,
+            rbound: this.x + this.w});
+        this.selected;
+
+    }
+    init_class() {
+        // draw labels
+        context.fillStyle = 'black';
+        context.font = "18px Verdana";
+        context.fillText(this.label, this.x + this.w/2, this.y - 10); 
+
+        for (let d = 0; d <= (this.max - this.min); d++) {
+            // console.log(d)
+            let temp_x = this.x + this.w/(this.max - this.min) * (d);
+            let temp_x_lr = temp_x - 0.5 * this.w/(this.max - this.min);
+            let temp_x_ur = temp_x + 0.5 * this.w/(this.max - this.min);
+            if (this.sel_x >= temp_x_lr && this.sel_x < temp_x_ur) {
+                context.fillStyle = menu_colour;
+                this.selected = this.min + d;
+            } else {
+                context.fillStyle = 'black';
+            }
+            context.font = "16px Verdana";
+            context.fillText(this.min + d, temp_x, this.y + 25); 
+        }
+        
+        // draw slider
+        context.fillStyle = menu_colour;
+        context.fillRect(this.x, this.y, this.w, 2);
+
+        // draw selector
+        context.beginPath();
+        context.arc(this.sel_x, this.sel_y, this.sel_r, 0, 2 * Math.PI);
+        context.stroke();
+    }
+    update(t, x) {
+        context.clearRect(0, this.y - 25, bg.width, 50);
+        if (x <= this.x) {
+            this.sel_x = this.x;
+            selector_arr[current_ctx_arr[t].last_sel].x = this.sel_x;
+        }  else if (x >= this.x + this.w) {
+            this.sel_x = this.x + this.w;
+            selector_arr[current_ctx_arr[t].last_sel].x = this.sel_x;
+        } else {
+            this.sel_x = x;
+        }
+        this.init_class();
+        // reset starting position
+        selector_arr[current_ctx_arr[t].last_sel].start_x = this.sel_x;
+    }
+}
+
+class question {
+    constructor(diff1, diff2) {
+        this.diff1 = digit_diff1.selected;
+        this.diff2 = digit_diff2.selected;
+        this.question_int = 0;
+        this.question_str = '';
+        this.temp_int = 0;
+        this.temp_str = '';
+        this.answer_int = 0;
+        this.answer_str = '';
+        this.ans_correct_count = 0;
+        this.question_count = 0;
+        // clear previous menus
+        context.clearRect(0, menu_y + menu_h/5 - 25, bg.width, menu_h + 20);
+    }
+    generate_int() {
+        return Math.floor(Math.random() * 10);
+    }
+    generate_add() {
+        for (let n = 0; n < this.diff2; n++) {
+            this.temp_str = '';
+            for (let i = 0; i < this.diff1; i++) {
+                this.temp_int = this.generate_int();
+                if (i === 0 && this.temp_int === 0) {
+                    this.temp_int = 1;
+                }
+                this.temp_str = this.temp_str.concat(String(this.temp_int));
+            }
+            this.answer_int += Number(this.temp_str);
+            if (n < this.diff2 - 1) {
+                this.question_str = this.question_str.concat(this.temp_str, ' + ');
+
+            } else {
+                this.question_str = this.question_str.concat(this.temp_str);
+            }
+        }
+    }
+    generate_multi() {
+        this.temp_str = ''
+        for (let i = 0; i < this.diff1; i++) {
+            this.temp_int = this.generate_int();
+            if (i === 0 && this.temp_int === 0) {
+                this.temp_int = 1;
+            }
+            this.temp_str = this.temp_str.concat(String(this.temp_int));
+        }
+
+        this.answer_int += Number(this.temp_str);
+        this.question_str = this.question_str.concat(this.temp_str, ' x ');
+        this.temp_str = ''
+
+        for (let i = 0; i < this.diff2; i++) {
+            this.temp_int = this.generate_int();
+            if (i === 0 && this.temp_int === 0) {
+                this.temp_int = 1;
+            }
+            this.temp_str = this.temp_str.concat(String(this.temp_int));
+        }
+        this.answer_int = this.answer_int * Number(this.temp_str);
+        this.question_str = this.question_str.concat(this.temp_str);
+    }
+    display() {
+        is_paused = false;
+        this.question_str = '';
+        this.answer_int = 0;
+        context.clearRect(0, menu_y, bg.width, menu_h);
+        // console.log(this.diff1, this.diff2);
+        if (is_add) {
+            this.generate_add();
+        } else if (is_multi) {
+            this.generate_multi();
+        }
+        context.font = "20px Verdana";
+        context.fillStyle = 'black';
+        context.fillText(this.question_str, menu_x + menu_w/2, menu_y + menu_h/3, bg.width); 
+        go_button(false);
+    }
+    check_ans() {
+        let temp_result;
+
+        if (counter_val === this.answer_int) {
+            temp_result = 'correct!';
+            this.ans_correct_count += 1;
+            this.question_count += 1;
+        } else {
+            temp_result = 'false!';
+            this.question_count += 1;
+        }
+        go_button(true);
+        // practice_question.display();
+        context.font = "16px Verdana";
+        context.fillStyle = 'black';
+        context.fillText(temp_result.concat(' ans was ', String(this.answer_int)), menu_x + menu_w/2, menu_y + menu_h * (1/5), bg.width); 
+        temp_result = ''
+        temp_result = temp_result.concat('score: ', String(this.ans_correct_count), ' out of ', String(this.question_count));
+        context.fillText(temp_result, menu_x + menu_w/2, menu_y + menu_h * (3/5), bg.width); 
+        is_paused = true;
+    }
+}
+
+// generate menu
+function generate_title() {
+    // title
+    context.fillStyle = 'black';
+    context.textAlign = 'center';
+    context.font = "24px Verdana";
+    context.fillText("virtual abacus", bg.width/2, 25, bg.width/2); 
+}
+
+function generate_menu() {
+    // menu
+    context.font = "20px Verdana";
+    context.fillStyle = menu_colour;
+    context.fillRect(menu_x, menu_y, menu_w, menu_h);
+    if (!is_practice) {
+        context.fillStyle = 'black';
+        context.fillText('tap for practice', menu_x + menu_w/2, menu_y + menu_h/2.5);
+        context.fillText('mode', menu_x + menu_w/2, menu_y + menu_h/2.5 + 36);    
+    } else {
+        show_mode_selector();
+    }
+}
+
+function show_mode_selector() {
+    // clear welcome text
+    context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
+    
+    // show diff options if mode has not been selected yet
+    if (!is_add && !is_multi) {
+        add_mode = new mode_selector(menu_x, menu_y, 'addition');
+        multi_mode = new mode_selector(menu_x, menu_y + menu_h/3, 'multiplication');
+    } else {
+        show_diff_selector();
+    }
+}
+
+function show_diff_selector() {
+    context.clearRect(menu_x, menu_y - 1, menu_w, menu_h + 2);    
+
+    if (is_add) {
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits', 1, 3);    
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'length', 2, 9);
+    } else if (is_multi) {
+        digit_diff1 = new diff_slider(menu_x, menu_y + menu_h/5, 'digits of 1st num', 1, 2);   
+        digit_diff2 = new diff_slider(menu_x, menu_y + menu_h * (3/5), 'digits of 2nd num', 1, 2);
+    }
+    digit_diff1.init_class();
+    digit_diff2.init_class();
+
+    go_button(false);
+}
+
+function go_button(is_next) {
+    // draw button
+    context.clearRect(go_x - 1, go_y - 1, go_w + 2, go_h + 2);
+    context.fillStyle = menu_colour;
+    if (is_go) {
+        context.fillRect(go_x - go_w, go_y, go_w * 3, go_h * 1.1);
+    } else {
+        context.fillRect(go_x, go_y, go_w, go_h);
+    }
+
+    // draw label
+    context.fillStyle = 'black';
+    context.font = "20px Verdana";
+    let temp_text;
+    if (is_go && !is_next) {
+        context.fillText('check ans', go_x + go_w/2, go_y + go_h * (2/3));
+    } else if (is_go && is_next) {
+        context.fillText('next', go_x + go_w/2, go_y + go_h * (2/3));
+
+    } else {
+        context.fillText('go', go_x + go_w/2, go_y + go_h * (2/3));
+    }
+}
+
 // c, b, x, y, w, h, is_colliding, is_bound, val
 function define_shape_dims() {
-    // init array
+    // init array or empty array
+    ctxs = [];
     // column loop
     function def_bound_y(d, b) {
         switch(b) {
@@ -94,7 +386,17 @@ function define_shape_dims() {
             } else {
                 temp_val = 1 * 10**(3 - c);
             }
-            ctxs.push({c: c, b: b, x: rel_x + c * incr_x, y: rel_y + b * incr_y, w: rel_w, h: rel_h, min_y: def_bound_y('u', b), max_y: def_bound_y ('l', b), is_colliding: false, is_bound: false, val: temp_val});
+            ctxs.push({c: c,
+                b: b, 
+                x: rel_x + c * incr_x, 
+                y: rel_y + b * incr_y, 
+                w: rel_w, 
+                h: rel_h, 
+                min_y: def_bound_y('u', b), 
+                max_y: def_bound_y ('l', b), 
+                is_colliding: false, 
+                is_bound: false, 
+                val: temp_val});
         }
     }
     // move first row starting position up
@@ -108,10 +410,10 @@ function define_shape_dims() {
 
 // draw and redraw shapes as movement is detected
 let draw_shapes = function() {
-    let context = bg.getContext("2d");
 
     // beads
-    context.clearRect(0, 0, bg.width, bg.height); // clear entire canvas and redraw all shapes
+    // clear entire canvas and redraw all shapes
+    context.clearRect(0, up_bound_y - 40, bg.width, bg.height - (up_bound_y - 40));
     for (let [i, ctx] of ctxs.entries()) {
         context.save(); // save context
         // translate origin to current shape's x, y
@@ -140,13 +442,13 @@ let draw_shapes = function() {
 
     // counter display
     context.fillStyle = 'black';
-    context.font = "30px Verdana";
+    context.font = "24px Verdana";
     context.textAlign = 'center';
-    context.fillText(counter_val, bg.width/2, up_bound_y - 40, bg.width/6);
+    context.fillText(counter_val, bg.width/2, up_bound_y - 20, bg.width/6);
     // counter label
-    context.font = "30px Verdana";
+    context.font = "24px Verdana";
     context.textAlign = 'center';
-    context.fillText("Result:", bg.width/4, up_bound_y - 40, bg.width/4);    
+    context.fillText("Result:", bg.width/4, up_bound_y - 20, bg.width/4);   
 }
 
 // test for if mouse click originated in shape
@@ -161,7 +463,54 @@ let is_mouse_in_shape = function(x, y, ctx) {
     if (x > ctx_left && x < ctx_right && y > ctx_top && y < ctx_bottom) {
         return true;
     }
+    return false;
+}
 
+let is_mouse_in_menu = function(x, y, t) {
+    // initial menu
+    if (!is_practice && x > menu_x && x < (menu_x + menu_w) && y > menu_y && y < (menu_y + menu_h)) {
+        return true;
+    // mode selector
+    } else if (is_practice && !(is_add || is_multi) && x > add_mode.x && x < (add_mode.x + menu_w) && y > add_mode.y && y < (add_mode.y + menu_h/4)) {
+        is_add = true;
+        return true;
+    } else if (is_practice && !(is_add || is_multi) && x > multi_mode.x && x < (multi_mode.x + menu_w) && y > multi_mode.y && y < (multi_mode.y + menu_h/4)) {
+        is_multi = true;
+        return true;
+    // diff selector
+    } else if (is_practice && (is_add || is_multi) && !is_go) {
+        // console.log('firing');
+        for (let [i, sel] of selector_arr.entries()) {
+            let sel_left = sel.lbound;
+            let sel_right = sel.rbound;
+            let sel_top = sel.y - sel.r * 1.5;
+            let sel_bottom = sel.y + sel.r * 1.5;
+            if (x > sel_left && x < sel_right && y > sel_top && y < sel_bottom) {
+                current_ctx_arr[t].last_sel = i;
+                is_sliding = true;
+                return true;
+            }
+        }
+        // check go button
+        if (x > go_x && x < go_x + go_w && y > go_y && y < go_y + go_h) {
+            // console.log('working');
+            is_go = true;
+            practice_question = new question;
+            practice_question.display();
+            return true;
+        }
+        return false;
+    // check ans
+    } else if (is_go && x > go_x && x < go_x + go_w * 3 && y > go_y && y < go_y + go_h * 1.1) {
+        // console.log('firing');
+        if (!is_paused) {
+            practice_question.check_ans();
+        } else {
+            define_shape_dims();
+            draw_shapes();
+            practice_question.display();
+        }
+    }
     return false;
 }
 
@@ -203,7 +552,6 @@ let is_boundary_colliding = function(i, dy) {
     }
     return do_bound_check();
 }
-
 
 // test for collision between beads
 let is_shape_colliding = function(i, dy) {
@@ -286,6 +634,22 @@ let mouse_down = function(e) {
         start_x[t] = parseInt(e.clientX || e.targetTouches[t].clientX);
         start_y[t] = parseInt(e.clientY || e.targetTouches[t].clientY);
 
+        // check if tapping menu first
+        if (!is_practice && is_mouse_in_menu(start_x[t], start_y[t])){
+            is_practice = true;
+            generate_menu();
+        // mode selector stage
+        } else if (is_practice && !(is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t])) {
+            generate_menu();
+        // diff selector stage
+        } else if (is_practice && (is_add || is_multi) && is_mouse_in_menu(start_x[t], start_y[t], t)) {
+            if (!is_go) {
+                // nothing
+            } else if (is_go) {
+                // fire the question generator
+            }
+        }
+
         // if starting position was in a shape, then set is_dragging to true
         for (let [i, ctx] of ctxs.entries()) {
             if (is_mouse_in_shape(start_x[t], start_y[t], ctx)) {
@@ -298,7 +662,6 @@ let mouse_down = function(e) {
                 // console.log('not in shape');
             }
         }
-        // console.log('arr', current_ctx_arr);
     }
 
     if (is_mobile) {
@@ -314,12 +677,9 @@ let mouse_down = function(e) {
 
 // function for handling mouse up, ending is_dragging
 let mouse_up = function(e) {
-    if (!is_dragging) {
-        return;
-    }
     e.preventDefault();
-    // console.log('mouse up')
     is_dragging = false;
+    is_sliding = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
     current_ctx_arr[0].last_col = null;
@@ -328,11 +688,9 @@ let mouse_up = function(e) {
 
 // function to handle mouse out of bounds
 let mouse_out = function(e) {
-    if (!is_dragging) {
-        return;
-    }
     e.preventDefault();
     is_dragging = false;
+    is_sliding = false;
     current_ctx_arr[0].last_ctx = null;
     current_ctx_arr[1].last_ctx = null;
     current_ctx_arr[0].last_col = null;
@@ -444,9 +802,33 @@ let mouse_move = function(e) {
         start_y[t] = mouse_y[t];
     }
 
-    if (!is_dragging) {
+    function sliding_work(t) {
+        // track current x,y position
+        // console.log('firing');
+        if (e.pointerType === 'touch') {
+            // console.log(e);
+            mouse_x[t] = parseInt(e.pageX);
+            mouse_y[t] = parseInt(e.pageY);
+        } else {
+            // console.log('working');
+            mouse_x[t] = parseInt(e.clientX || e.targetTouches[t].pageX);
+            mouse_y[t] = parseInt(e.clientY || e.targetTouches[t].pageY);    
+        }
+        let dx = mouse_x[t] - selector_arr[current_ctx_arr[t].last_sel].start_x;
+        // console.log(current_ctx_arr[t].last_sel, dx);
+        selector_arr[current_ctx_arr[t].last_sel].x += dx;
+
+        // update position of slider
+        if (current_ctx_arr[t].last_sel === 0) {
+            digit_diff1.update(t, mouse_x[t]);
+        } else {
+            digit_diff2.update(t, mouse_x[t]);    
+        }    
+    }
+
+    if (!is_dragging && !is_sliding) {
         return
-    // multiple touch treatment    
+    // multiple touch treatment for beads
     } else if (is_dragging && is_mobile) {
         for (let t = 0; t < e.targetTouches.length; t++) {
             if (t < 2) {
@@ -458,9 +840,12 @@ let mouse_move = function(e) {
                 }
             }
         }
-    // mouse treatment
+    // mouse treatment for beads
     } else if (is_dragging && !is_mobile) {
         mouse_move_work(0);
+    } else if (is_sliding) {
+        // console.log(is_sliding);
+        sliding_work(0);
     }
 }
 
@@ -493,6 +878,8 @@ function set_event_handlers() {
 
 function init() {
     // initialize shapes on load
+    generate_title();
+    generate_menu();
     define_shape_dims();
     draw_shapes();
     set_event_handlers();
