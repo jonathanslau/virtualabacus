@@ -1,7 +1,9 @@
 # virtualabacus
  
-Repository for my virtual abacus project.
+[Deployed](http://virtual-abacus.herokuapp.com/) on heroku.
 
-The current plan is to use vanilla js and html to get to an mvp stage. Once mvp is reached, the page will be deployed. After that, additional features will be planned. I will then double back and look at available javascript frameworks that could improve readability of existing code and make future development easier.
+This is a personal project filling two purposes. One, as a way to learn JavaScript, front end dev, server-side dev, etc. Two, to build a tool to help keep my mental arithmetic ability sharp.
 
-The [wiki](https://github.com/jonathanslau/virtualabacus/wiki/Planning) contains planning information.
+The app simulates a 4+1 row standard abacus, currently available with 4 columns (max number is 9999). It also generates addition and multiplication practice questions.
+
+Future development will include ux improvements, addition with subtraction, division, and server-side score saving.
